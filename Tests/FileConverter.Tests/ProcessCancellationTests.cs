@@ -35,27 +35,34 @@ namespace FileConverter.Tests
         {
             using (Process process = StartSilentProcess(60))
             {
-                DateTime cancelTime = DateTime.MaxValue;
-                DateTime started = DateTime.UtcNow;
-
-                bool killed = ProcessCancellation.WaitForExit(process, () =>
+                try
                 {
-                    if (DateTime.UtcNow - started > TimeSpan.FromSeconds(2))
+                    DateTime cancelTime = DateTime.MaxValue;
+                    DateTime started = DateTime.UtcNow;
+
+                    bool killed = ProcessCancellation.WaitForExit(process, () =>
                     {
-                        if (cancelTime == DateTime.MaxValue)
+                        if (DateTime.UtcNow - started > TimeSpan.FromSeconds(2))
                         {
-                            cancelTime = DateTime.UtcNow;
+                            if (cancelTime == DateTime.MaxValue)
+                            {
+                                cancelTime = DateTime.UtcNow;
+                            }
+
+                            return true;
                         }
 
-                        return true;
-                    }
+                        return false;
+                    });
 
-                    return false;
-                });
-
-                Assert.True(killed);
-                Assert.True(process.HasExited);
-                Assert.True(DateTime.UtcNow - cancelTime < TimeSpan.FromSeconds(1), "The process should be killed within ~0.5 s of the cancellation.");
+                    Assert.True(killed);
+                    Assert.True(process.HasExited);
+                    Assert.True(DateTime.UtcNow - cancelTime < TimeSpan.FromSeconds(1), "The process should be killed within ~0.5 s of the cancellation.");
+                }
+                finally
+                {
+                    KillIfRunning(process);
+                }
             }
         }
 
@@ -64,10 +71,25 @@ namespace FileConverter.Tests
         {
             using (Process process = StartSilentProcess(1))
             {
-                bool killed = ProcessCancellation.WaitForExit(process, () => false);
+                try
+                {
+                    bool killed = ProcessCancellation.WaitForExit(process, () => false);
 
-                Assert.False(killed);
-                Assert.Equal(0, process.ExitCode);
+                    Assert.False(killed);
+                    Assert.Equal(0, process.ExitCode);
+                }
+                finally
+                {
+                    KillIfRunning(process);
+                }
+            }
+        }
+
+        private static void KillIfRunning(Process process)
+        {
+            if (!process.HasExited)
+            {
+                process.Kill();
             }
         }
     }

@@ -142,7 +142,6 @@
     <Compile Include="Hardware\IHardwareEncoderDetector.cs" />
     <Compile Include="Hardware\IProcessRunner.cs" />
     <Compile Include="Hardware\ProcessRunner.cs" />
-    <Compile Include="ProcessCancellation.cs" />
     <Compile Include="Hardware\VideoCodec.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Hardware\HardwareEncoderSummary.cs" />
@@ -163,6 +162,7 @@
     <Compile Include="Services\IUpgradeService.cs" />
     <Compile Include="Services\NavigationService.cs" />
     <Compile Include="PathHelpers.cs" />
+    <Compile Include="ProcessCancellation.cs" />
     <Compile Include="Properties\Resources.en.Designer.cs">
       <DependentUpon>Resources.en.resx</DependentUpon>
       <AutoGen>True</AutoGen>

@@ -25,7 +25,9 @@ namespace FileConverter.ConversionJobs
 
         // Duration written so far by the running attempt (ffmpeg -progress "out_time_us"), null until reported.
         private TimeSpan? attemptOutputDuration;
-        private readonly object attemptOutputDurationLock = new object();
+        // Written by the stdout handler (-progress), while the stderr handler writes the other fields of the attempt.
+        // Each stream's handler is serialized by Process, and every read happens on the job thread after the
+        // parameterless WaitForExit(), which joins both readers: no lock needed.
 
         private ProcessStartInfo ffmpegProcessStartInfo;
 
@@ -718,6 +720,12 @@ namespace FileConverter.ConversionJobs
 
                 if (error == null)
                 {
+                    if (this.CancelIsRequested)
+                    {
+                        // A killed ffmpeg exits without error: don't let the next pass start.
+                        return false;
+                    }
+
                     if (attemptIndex > 0)
                     {
                         Diagnostics.Debug.Log($"Conversion succeeded with fallback encoding path '{attempt.Path}'.");
@@ -855,10 +863,7 @@ namespace FileConverter.ConversionJobs
             if (line != null && line.StartsWith(OutTimeKey, StringComparison.Ordinal) &&
                 long.TryParse(line.Substring(OutTimeKey.Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out long microseconds) && microseconds >= 0)
             {
-                lock (this.attemptOutputDurationLock)
-                {
-                    this.attemptOutputDuration = TimeSpan.FromTicks(microseconds * 10);
-                }
+                this.attemptOutputDuration = TimeSpan.FromTicks(microseconds * 10);
             }
         }
 
@@ -871,7 +876,7 @@ namespace FileConverter.ConversionJobs
             }
             catch (Exception exception)
             {
-                Diagnostics.Debug.Log($"Can't parse ffmpeg output '{line}': {exception.Message}");
+                Diagnostics.Debug.Log($"Can't parse ffmpeg output: {exception.Message}");
             }
 
             Diagnostics.Debug.Log($"ffmpeg output: {line}");
