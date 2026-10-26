@@ -33,7 +33,8 @@ namespace FileConverter.ValueConverters
             OutputTypeViewModel outputTypeViewModel = value as OutputTypeViewModel;
             if (outputTypeViewModel == null)
             {
-                return OutputType.None;
+                // No item selected (e.g. the preset's type is not in the list): keep the preset's output type.
+                return Binding.DoNothing;
             }
 
             return outputTypeViewModel.Type;

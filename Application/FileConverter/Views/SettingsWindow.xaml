@@ -77,7 +77,7 @@
                         <GroupBox Header="{x:Static project:Resources.OutputFormat}" Grid.Row="1" Grid.Column="0" Margin="5">
                             <StackPanel>
                                 <ComboBox Margin="5" Height="29" VerticalAlignment="Top" 
-                                          ItemsSource="{Binding OutputTypes}"
+                                          ItemsSource="{Binding OutputTypes}" IsSynchronizedWithCurrentItem="False"
                                           SelectedItem="{Binding SelectedPreset.Preset.OutputType, Converter={StaticResource OutputTypeEnumToViewModel}, Mode=TwoWay}">
                                     <ComboBox.GroupStyle>
                                         <GroupStyle>
