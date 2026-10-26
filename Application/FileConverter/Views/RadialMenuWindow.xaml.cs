@@ -53,6 +53,7 @@ namespace FileConverter.Views
         private int hoverIndex = -1;
         private bool isShown;
         private bool hasChosen;
+        private bool canArmHubPaging;
         private bool hasPendingBounds;
         private int pendingLeft;
         private int pendingTop;
@@ -90,6 +91,7 @@ namespace FileConverter.Views
             this.mode = mode;
             this.filePaths = filePaths ?? new string[0];
             this.hasChosen = false;
+            this.canArmHubPaging = false;
             this.hoverIndex = -1;
 
             this.compatiblePresets = PresetCompatibility.GetPresetsCompatibleWithAll(allPresets ?? new ConversionPreset[0], this.filePaths);
@@ -435,8 +437,14 @@ namespace FileConverter.Views
             this.SetHover(slice);
             e.Effects = slice >= 0 ? DragDropEffects.Copy : DragDropEffects.None;
 
+            // The menu opens centred on the cursor, i.e. on the hub: hub hover only pages after the cursor has left the hub once.
             bool overHub = distance < RadialGeometry.InnerRadius;
-            if (overHub && this.pager != null && this.pager.ShowsPaging)
+            if (!overHub)
+            {
+                this.canArmHubPaging = true;
+            }
+
+            if (overHub && this.canArmHubPaging && this.pager != null && this.pager.ShowsPaging)
             {
                 if (!this.hubHoverTimer.IsEnabled)
                 {
@@ -475,6 +483,9 @@ namespace FileConverter.Views
 
         private void HubHoverTimer_Tick(object sender, EventArgs e)
         {
+            // A flip needs a fresh exit and re-entry of the hub before the next one.
+            this.canArmHubPaging = false;
+            this.hubHoverTimer.Stop();
             this.ChangePage(true);
         }
     }
