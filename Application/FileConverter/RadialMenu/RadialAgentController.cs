@@ -3,6 +3,13 @@
 namespace FileConverter.RadialMenu
 {
     using System;
+    using System.Diagnostics;
+    using System.Security.AccessControl;
+    using System.Threading;
+
+    using Microsoft.Win32;
+
+    using Debug = FileConverter.Diagnostics.Debug;
 
     /// <summary>
     /// Starts, reloads and stops the radial menu tray agent, and manages its autostart, from the settings process.
@@ -27,24 +34,109 @@ namespace FileConverter.RadialMenu
             return isRunning ? AgentAction.Stop : AgentAction.None;
         }
 
+        /// <summary>
+        /// The agent owns a named mutex for its whole life: it is running as long as the mutex can be opened.
+        /// </summary>
         public static bool IsAgentRunning()
         {
-            throw new NotImplementedException();
+            if (Mutex.TryOpenExisting(RadialAgentNames.Mutex, MutexRights.Synchronize, out Mutex mutex))
+            {
+                mutex.Dispose();
+                return true;
+            }
+
+            return false;
         }
 
         public static void SetAutostart(bool enabled, string exePath)
         {
-            throw new NotImplementedException();
+            SetAutostart(enabled, exePath, RadialAgentNames.RunKeyPath);
         }
 
+        /// <summary>
+        /// Applies the settings: autostart value, then start / reload / stop of the agent.
+        /// </summary>
         public static void ApplySettings(Settings settings, string exePath)
         {
-            throw new NotImplementedException();
+            bool shouldRun = settings.ShouldRunRadialAgent;
+            SetAutostart(shouldRun, exePath);
+
+            AgentAction action = ComputeAction(shouldRun, IsAgentRunning());
+            Debug.Log($"Radial menu agent: {action}.");
+            switch (action)
+            {
+                case AgentAction.Start:
+                    Process.Start(exePath, "--agent");
+                    break;
+
+                case AgentAction.Reload:
+                    SignalAgent(RadialAgentNames.ReloadEvent);
+                    break;
+
+                case AgentAction.Stop:
+                    SignalAgent(RadialAgentNames.ExitEvent);
+                    break;
+            }
         }
 
+        /// <summary>
+        /// Asks the agent to exit and waits until it is gone.
+        /// </summary>
+        /// <returns>True if the agent is not running anymore (or was not running).</returns>
         public static bool StopAgent(TimeSpan timeout)
         {
-            throw new NotImplementedException();
+            if (!IsAgentRunning())
+            {
+                return true;
+            }
+
+            SignalAgent(RadialAgentNames.ExitEvent);
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            while (IsAgentRunning())
+            {
+                if (stopwatch.Elapsed >= timeout)
+                {
+                    return false;
+                }
+
+                Thread.Sleep(50);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Writes or removes the autostart value (under HKEY_CURRENT_USER\<paramref name="runKeyPath"/>).
+        /// </summary>
+        internal static void SetAutostart(bool enabled, string exePath, string runKeyPath)
+        {
+            if (enabled)
+            {
+                using (RegistryKey key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(runKeyPath))
+                {
+                    key.SetValue(RadialAgentNames.RunValueName, RadialAgentNames.BuildRunCommand(exePath), RegistryValueKind.String);
+                }
+            }
+            else
+            {
+                using (RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(runKeyPath, true))
+                {
+                    key?.DeleteValue(RadialAgentNames.RunValueName, false);
+                }
+            }
+        }
+
+        private static void SignalAgent(string eventName)
+        {
+            // The agent can exit between the check and the signal: nothing to do then.
+            if (EventWaitHandle.TryOpenExisting(eventName, EventWaitHandleRights.Modify, out EventWaitHandle handle))
+            {
+                using (handle)
+                {
+                    handle.Set();
+                }
+            }
         }
     }
 }

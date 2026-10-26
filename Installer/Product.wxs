@@ -21,17 +21,21 @@
         <CustomAction Id="UninstallShell" ExeCommand="--unregister-shell-extension &quot;[INSTALLFOLDER]FileConverterPlusPlusExtension.dll&quot;" Execute="deferred" Return="check" Impersonate="no" FileRef="FileConverter.exe" />
         <CustomAction Id="PostInstallInit" ExeCommand="--post-install-init" Execute="immediate" FileRef="FileConverter.exe" />
 
+        <CustomAction Id="StopRadialAgent" FileRef="FileConverter.exe" ExeCommand="--stop-agent" Execute="immediate" Return="ignore" />
+
         <UI>
             <ProgressText Action="InstallFiles" Template="File: [1],  Directory: [9],  Size: [6]" Message="Copying new files" />
             <ProgressText Action="InstallShell" Message="Register shell extension to Windows Explorer" />
             <ProgressText Action="UninstallShell" Message="Unregister shell extension from Windows Explorer" />
             <ProgressText Action="PostInstallInit" Message="Initialize conversion presets" />
+            <ProgressText Action="StopRadialAgent" Message="Stop the radial menu agent" />
         </UI>
 
         <PropertyRef Id="WIX_IS_NETFRAMEWORK_48_OR_LATER_INSTALLED" />
         <Launch Condition="Installed OR WIX_IS_NETFRAMEWORK_48_OR_LATER_INSTALLED" Message="This application requires .NET Framework 4.8. Please install the .NET Framework then run this installer again." />
 
         <InstallExecuteSequence>
+            <Custom Action="StopRadialAgent" Before="InstallValidate" Condition="REMOVE~=&quot;ALL&quot;" />
             <Custom Action="UninstallShell" Before="RemoveRegistryValues" Condition="(NOT UPGRADINGPRODUCTCODE) AND (REMOVE~=&quot;ALL&quot;)" />
             <Custom Action="InstallShell" After="WriteRegistryValues" Condition="NOT Installed" />
             <Custom Action="PostInstallInit" After="InstallFinalize" Condition="NOT Installed" />

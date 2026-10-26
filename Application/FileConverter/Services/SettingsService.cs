@@ -101,7 +101,19 @@ namespace FileConverter.Services
             }
 
             Settings settings = userSettings != null ? userSettings.Merge(defaultSettings) : defaultSettings;
-            return this.Save(settings);
+            bool saved = this.Save(settings);
+
+            // Make the radial menu autostart and tray agent match the settings (an upgrade can change the executable path).
+            try
+            {
+                RadialMenu.RadialAgentController.ApplySettings(settings, Process.GetCurrentProcess().MainModule.FileName);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"Failed to apply the radial menu settings: {exception.Message}");
+            }
+
+            return saved;
         }
 
         public void SaveSettings()

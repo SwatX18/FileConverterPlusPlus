@@ -336,6 +336,53 @@ namespace FileConverter.Views
             return null;
         }
 
+        /// <summary>
+        /// Captures the radial menu hotkey: the pressed combination replaces the text. Without modifier, Backspace and Delete
+        /// reset the hotkey to its default and every other key is left alone (Tab and Esc keep their usual behaviour).
+        /// Pure modifier presses and combinations that are not a valid hotkey are swallowed and ignored.
+        /// </summary>
+        private void RadialMenuHotkeyTextBox_PreviewKeyDown(object sender, KeyEventArgs args)
+        {
+            if (!(this.DataContext is SettingsViewModel viewModel))
+            {
+                return;
+            }
+
+            Key key = args.Key;
+            switch (key)
+            {
+                case Key.System:
+                    key = args.SystemKey;
+                    break;
+
+                case Key.ImeProcessed:
+                    key = args.ImeProcessedKey;
+                    break;
+
+                case Key.DeadCharProcessed:
+                    key = args.DeadCharProcessedKey;
+                    break;
+            }
+
+            ModifierKeys modifiers = Keyboard.Modifiers;
+            if (modifiers == ModifierKeys.None)
+            {
+                if (key == Key.Back || key == Key.Delete)
+                {
+                    viewModel.Settings.RadialMenuHotkey = RadialMenu.Hotkey.Default.ToString();
+                    args.Handled = true;
+                }
+
+                return;
+            }
+
+            args.Handled = true;
+            if (RadialMenu.Hotkey.TryFromKeyEvent(modifiers, key, out RadialMenu.Hotkey hotkey))
+            {
+                viewModel.Settings.RadialMenuHotkey = hotkey.ToString();
+            }
+        }
+
         private void SelectedPresetName_OnLoaded(object sender, RoutedEventArgs e)
         {
             this.selectedPresetNameTextBox = (TextBox)sender;
