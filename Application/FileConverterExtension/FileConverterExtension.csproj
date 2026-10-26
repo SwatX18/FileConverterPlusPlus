@@ -58,6 +58,7 @@
     <Reference Include="System.Xml.Serialization" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExtensionSettings.cs" />
     <Compile Include="FileConverterExtension.cs" />
     <Compile Include="ConversionPresetReference.cs" />
     <Compile Include="PathHelpers.cs" />

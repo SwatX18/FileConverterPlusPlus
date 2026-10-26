@@ -13,7 +13,9 @@ namespace FileConverter
     [XmlType]
     public class Settings : ObservableObject, IXmlSerializable
     {
-        public const int Version = 6;
+        public const int Version = 7;
+
+        public const string DefaultRadialMenuHotkey = "Ctrl+Alt+C";
 
         private bool exitApplicationWhenConversionsFinished = false;
         private float durationBetweenEndOfConversionsAndApplicationExit = 3f;
@@ -27,6 +29,12 @@ namespace FileConverter
         private int maximumNumberOfSimultaneousCpuVideoConversions;
         private bool copyStreamsWhenPossible = true;
         private Helpers.ImageEngine imageEngine = Helpers.ImageEngine.Auto;
+        private bool radialMenuEnabled = false;
+        private bool radialMenuExtraContextMenuEntry = false;
+        private bool radialMenuReplaceContextMenu = false;
+        private bool radialMenuHotkeyEnabled = false;
+        private string radialMenuHotkey = DefaultRadialMenuHotkey;
+        private bool radialMenuCtrlDragEnabled = false;
 
         public ConversionPreset GetPresetFromName(string presetName)
         {
@@ -317,8 +325,172 @@ namespace FileConverter
                 this.OnPropertyChanged();
             }
         }
+
+        /// <summary>
+        /// Master switch of the radial menu. When off, every radial menu trigger is disabled.
+        /// </summary>
+        [XmlElement]
+        public bool RadialMenuEnabled
+        {
+            get
+            {
+                return this.radialMenuEnabled;
+            }
+
+            set
+            {
+                this.radialMenuEnabled = value;
+                this.OnPropertyChanged();
+                this.OnPropertyChanged(nameof(this.ShouldRunRadialAgent));
+            }
+        }
+
+        /// <summary>
+        /// Trigger A: extra "radial menu" entry in the Explorer context menu.
+        /// </summary>
+        [XmlElement]
+        public bool RadialMenuExtraContextMenuEntry
+        {
+            get
+            {
+                return this.radialMenuExtraContextMenuEntry;
+            }
+
+            set
+            {
+                this.radialMenuExtraContextMenuEntry = value;
+                this.OnPropertyChanged();
+                this.OnPropertyChanged(nameof(this.RadialMenuContextMenuMode));
+            }
+        }
+
+        /// <summary>
+        /// Trigger B: the context menu entry opens the radial menu instead of the preset submenu.
+        /// </summary>
+        [XmlElement]
+        public bool RadialMenuReplaceContextMenu
+        {
+            get
+            {
+                return this.radialMenuReplaceContextMenu;
+            }
+
+            set
+            {
+                this.radialMenuReplaceContextMenu = value;
+                this.OnPropertyChanged();
+                this.OnPropertyChanged(nameof(this.RadialMenuContextMenuMode));
+            }
+        }
+
+        /// <summary>
+        /// Trigger C: global hotkey (see <see cref="RadialMenuHotkey"/>), handled by the tray agent.
+        /// </summary>
+        [XmlElement]
+        public bool RadialMenuHotkeyEnabled
+        {
+            get
+            {
+                return this.radialMenuHotkeyEnabled;
+            }
+
+            set
+            {
+                this.radialMenuHotkeyEnabled = value;
+                this.OnPropertyChanged();
+                this.OnPropertyChanged(nameof(this.ShouldRunRadialAgent));
+            }
+        }
+
+        /// <summary>
+        /// Hotkey of trigger C, in the canonical form of <see cref="RadialMenu.Hotkey"/> (e.g. "Ctrl+Alt+C").
+        /// </summary>
+        [XmlElement]
+        public string RadialMenuHotkey
+        {
+            get
+            {
+                return this.radialMenuHotkey;
+            }
+
+            set
+            {
+                this.radialMenuHotkey = value;
+                this.OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Trigger D: Ctrl+drag of files from Explorer, handled by the tray agent.
+        /// </summary>
+        [XmlElement]
+        public bool RadialMenuCtrlDragEnabled
+        {
+            get
+            {
+                return this.radialMenuCtrlDragEnabled;
+            }
+
+            set
+            {
+                this.radialMenuCtrlDragEnabled = value;
+                this.OnPropertyChanged();
+                this.OnPropertyChanged(nameof(this.ShouldRunRadialAgent));
+            }
+        }
+
+        /// <summary>
+        /// Exclusive choice between triggers A and B, as a single value for the settings UI.
+        /// </summary>
+        [XmlIgnore]
+        public Helpers.RadialContextMenuMode RadialMenuContextMenuMode
+        {
+            get
+            {
+                if (this.radialMenuReplaceContextMenu)
+                {
+                    return Helpers.RadialContextMenuMode.ReplaceSubmenu;
+                }
+
+                return this.radialMenuExtraContextMenuEntry ? Helpers.RadialContextMenuMode.ExtraEntry : Helpers.RadialContextMenuMode.None;
+            }
+
+            set
+            {
+                this.radialMenuExtraContextMenuEntry = value == Helpers.RadialContextMenuMode.ExtraEntry;
+                this.radialMenuReplaceContextMenu = value == Helpers.RadialContextMenuMode.ReplaceSubmenu;
+                this.OnPropertyChanged(nameof(this.RadialMenuExtraContextMenuEntry));
+                this.OnPropertyChanged(nameof(this.RadialMenuReplaceContextMenu));
+                this.OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// The tray agent is only needed by the triggers C and D.
+        /// </summary>
+        [XmlIgnore]
+        public bool ShouldRunRadialAgent
+        {
+            get
+            {
+                return this.radialMenuEnabled && (this.radialMenuHotkeyEnabled || this.radialMenuCtrlDragEnabled);
+            }
+        }
+
         public void OnDeserializationComplete()
         {
+            // A hand-edited file can enable both exclusive context menu triggers: the replacement wins.
+            if (this.radialMenuExtraContextMenuEntry && this.radialMenuReplaceContextMenu)
+            {
+                this.RadialMenuExtraContextMenuEntry = false;
+            }
+
+            // An invalid but non-empty hotkey is kept as is: the agent warns and leaves the trigger inactive.
+            if (string.IsNullOrWhiteSpace(this.radialMenuHotkey))
+            {
+                this.RadialMenuHotkey = DefaultRadialMenuHotkey;
+            }
+
             this.DurationBetweenEndOfConversionsAndApplicationExit = System.Math.Max(0, System.Math.Min(10, this.DurationBetweenEndOfConversionsAndApplicationExit));
 
             for (int index = 0; index < this.ConversionPresets.Count; index++)

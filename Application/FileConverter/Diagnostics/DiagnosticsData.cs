@@ -59,24 +59,32 @@ namespace FileConverter.Diagnostics
 
         public void Initialize(string diagnosticsFolderPath, int id)
         {
-            string path = Path.Combine(diagnosticsFolderPath, $"Diagnostics{id}.log");
-            path = PathHelpers.GenerateUniquePath(path);
-            this.logFileWriter = new StreamWriter(File.Open(path, FileMode.Create));
+            try
+            {
+                string path = Path.Combine(diagnosticsFolderPath, $"Diagnostics{id}.log");
+                path = PathHelpers.GenerateUniquePath(path);
+                this.logFileWriter = new StreamWriter(File.Open(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
+            }
+            catch (System.Exception)
+            {
+                // Diagnostics must never crash the application: keep the logs in memory only.
+                this.logFileWriter = TextWriter.Null;
+            }
 
             this.Log($"{System.DateTime.Now.ToLongDateString()} {System.DateTime.Now.ToLongTimeString()}\n");
         }
 
         public void Release()
         {
-            this.logFileWriter.Close();
+            this.logFileWriter?.Close();
             this.logFileWriter = null;
         }
 
         public void Log(string log)
         {
             this.logMessages.Add(log);
-            this.logFileWriter.WriteLine(log);
-            this.logFileWriter.Flush();
+            this.logFileWriter?.WriteLine(log);
+            this.logFileWriter?.Flush();
 
             this.OnPropertyChanged(nameof(this.Content));
         }

@@ -233,10 +233,27 @@ namespace FileConverter.ViewModels
 
             set
             {
+                if (this.settings != null)
+                {
+                    this.settings.PropertyChanged -= this.SettingsPropertyChanged;
+                }
+
                 this.settings = value;
+                if (this.settings != null)
+                {
+                    this.settings.PropertyChanged += this.SettingsPropertyChanged;
+                }
+
                 this.OnPropertyChanged();
             }
         }
+
+        public Helpers.RadialContextMenuMode[] RadialContextMenuModes { get; } =
+        {
+            Helpers.RadialContextMenuMode.None,
+            Helpers.RadialContextMenuMode.ExtraEntry,
+            Helpers.RadialContextMenuMode.ReplaceSubmenu,
+        };
 
         public CultureInfo[] SupportedCultures
         {
@@ -389,6 +406,13 @@ namespace FileConverter.ViewModels
                     return nodeError;
                 }
 
+                // The hotkey is only validated when it is going to be used.
+                if (this.settings != null && this.settings.RadialMenuEnabled && this.settings.RadialMenuHotkeyEnabled &&
+                    !RadialMenu.Hotkey.TryParse(this.settings.RadialMenuHotkey, out _))
+                {
+                    return Properties.Resources.RadialMenuHotkeyInvalid;
+                }
+
                 return string.Empty;
             }
         }
@@ -456,6 +480,12 @@ namespace FileConverter.ViewModels
         private void NodePropertyChanged(object sender, PropertyChangedEventArgs eventArgs)
         {
             this.saveCommand.NotifyCanExecuteChanged();
+        }
+
+        private void SettingsPropertyChanged(object sender, PropertyChangedEventArgs eventArgs)
+        {
+            // The radial menu hotkey validation is part of Error.
+            this.saveCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>
@@ -607,6 +637,22 @@ namespace FileConverter.ViewModels
             // Save changes.
             ISettingsService settingsService = Ioc.Default.GetRequiredService<ISettingsService>();
             settingsService.SaveSettings();
+
+            // Start, reload or stop the radial menu tray agent according to the saved settings.
+            try
+            {
+                string exePath;
+                using (Process currentProcess = Process.GetCurrentProcess())
+                {
+                    exePath = currentProcess.MainModule.FileName;
+                }
+
+                RadialMenu.RadialAgentController.ApplySettings(this.settings, exePath);
+            }
+            catch (Exception exception)
+            {
+                Diagnostics.Debug.LogError($"Failed to apply the radial menu settings: {exception.Message}");
+            }
 
             INavigationService navigationService = Ioc.Default.GetRequiredService<INavigationService>();
             navigationService.Close(Pages.Settings, false);

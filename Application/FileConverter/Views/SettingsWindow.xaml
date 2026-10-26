@@ -515,6 +515,66 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- Radial menu settings -->
+            <TabItem Header="{x:Static project:Resources.RadialMenu}">
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Row="0" Grid.Column="0" Content="{x:Static project:Resources.RadialMenuEnabled}" HorizontalAlignment="Right" Margin="0,0,5,0"/>
+                    <CheckBox Grid.Row="0" Grid.Column="1" x:Name="RadialMenuEnabledCheckBox" IsChecked="{Binding Settings.RadialMenuEnabled, Mode=TwoWay}" Margin="0,5,0,5" />
+
+                    <Label Grid.Row="1" Grid.Column="0" Content="{x:Static project:Resources.RadialMenuContextMenu}" HorizontalAlignment="Right" Margin="0,0,5,0"
+                           IsEnabled="{Binding IsChecked, ElementName=RadialMenuEnabledCheckBox}"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding RadialContextMenuModes, Mode=OneTime}" Margin="0,0,0,1"
+                              IsEnabled="{Binding IsChecked, ElementName=RadialMenuEnabledCheckBox}"
+                              SelectedValue="{Binding Settings.RadialMenuContextMenuMode, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <ContentPresenter Content="{Binding Converter={StaticResource RadialContextMenuModeToString}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <Label Grid.Row="2" Grid.Column="0" Content="{x:Static project:Resources.RadialMenuHotkeyEnabled}" HorizontalAlignment="Right" Margin="0,0,5,0"
+                           IsEnabled="{Binding IsChecked, ElementName=RadialMenuEnabledCheckBox}"/>
+                    <CheckBox Grid.Row="2" Grid.Column="1" x:Name="RadialMenuHotkeyEnabledCheckBox" IsChecked="{Binding Settings.RadialMenuHotkeyEnabled, Mode=TwoWay}" Margin="0,5,0,5"
+                              IsEnabled="{Binding IsChecked, ElementName=RadialMenuEnabledCheckBox}" />
+
+                    <Label Grid.Row="3" Grid.Column="0" Content="{x:Static project:Resources.RadialMenuHotkey}" HorizontalAlignment="Right" Margin="0,0,5,0"
+                           IsEnabled="{Binding IsEnabled, ElementName=RadialMenuHotkeyTextBox}"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" x:Name="RadialMenuHotkeyTextBox" HorizontalAlignment="Left" Width="200" Margin="0,0,0,1"
+                             IsReadOnly="True" IsReadOnlyCaretVisible="True" AutomationProperties.AutomationId="RadialMenuHotkeyTextBox"
+                             Text="{Binding Settings.RadialMenuHotkey, Mode=OneWay}"
+                             PreviewKeyDown="RadialMenuHotkeyTextBox_PreviewKeyDown">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                <Setter Property="IsEnabled" Value="{Binding IsChecked, ElementName=RadialMenuHotkeyEnabledCheckBox}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsChecked, ElementName=RadialMenuEnabledCheckBox}" Value="False">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <Label Grid.Row="4" Grid.Column="0" Content="{x:Static project:Resources.RadialMenuCtrlDragEnabled}" ToolTip="{x:Static project:Resources.RadialMenuCtrlDragTooltip}" HorizontalAlignment="Right" Margin="0,0,5,0"
+                           IsEnabled="{Binding IsChecked, ElementName=RadialMenuEnabledCheckBox}"/>
+                    <CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding Settings.RadialMenuCtrlDragEnabled, Mode=TwoWay}" ToolTip="{x:Static project:Resources.RadialMenuCtrlDragTooltip}" Margin="0,5,0,5"
+                              IsEnabled="{Binding IsChecked, ElementName=RadialMenuEnabledCheckBox}" />
+                </Grid>
+            </TabItem>
+
             <!-- About -->
             <TabItem Header="{x:Static project:Resources.About}">
                 <Grid>
@@ -526,7 +586,7 @@
                         <RowDefinition Height="50"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="45"/>
-                        <RowDefinition Height="30"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Grid.Column="0">
@@ -589,7 +649,10 @@
                         </Button>
                     </StackPanel>
 
-                    <Label Grid.Row="3" Grid.Column="0" Content="Copyright @ 2026, Adrien Allard. All right reserved. FileConverter++ changes: SwatX18." Foreground="{DynamicResource LighterForegroundBrush}" Margin="0,2,0,2"/>
+                    <StackPanel Grid.Row="3" Grid.Column="0">
+                        <Label Content="Copyright @ 2026, Adrien Allard. All right reserved. FileConverter++ changes: SwatX18." Foreground="{DynamicResource LighterForegroundBrush}" Margin="0,2,0,0" Padding="5,2"/>
+                        <Label Content="{x:Static project:Resources.RadialMenuCredit}" Foreground="{DynamicResource LighterForegroundBrush}" Margin="0,0,0,2" Padding="5,2"/>
+                    </StackPanel>
                 </Grid>
             </TabItem>
         </TabControl>

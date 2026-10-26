@@ -23,7 +23,7 @@ namespace FileConverterExtension
     {
         private const int MaximumProcessArgumentsLength = 8000; // https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/command-line-string-limitation
 
-        private PresetReference[] presetReferences = null;
+        private ExtensionSettings extensionSettings = null;
         private List<MenuEntry> menuEntries = new List<MenuEntry>();
 
         private HashSet<string> extensionCache = new HashSet<string>();
@@ -67,7 +67,7 @@ namespace FileConverterExtension
             {
                 this.LoadExtensionSettingsIfNecessary();
 
-                return this.presetReferences;
+                return this.extensionSettings?.ConversionPresets ?? new PresetReference[0];
             }
         }
 
@@ -97,6 +97,20 @@ namespace FileConverterExtension
             bool displayPresetIcons = this.DisplayPresetIcons;
 
             ContextMenuStrip menu = new ContextMenuStrip();
+
+            ExtensionMenuMode menuMode = this.extensionSettings != null ? this.extensionSettings.GetMenuMode() : ExtensionMenuMode.Classic;
+            if (menuMode == ExtensionMenuMode.RadialOnly)
+            {
+                menu.Items.Add(new ToolStripMenuItem
+                {
+                    Text = "FileConverter++",
+                    Image = new Icon(Properties.Resources.ApplicationIcon, SystemInformation.SmallIconSize).ToBitmap(),
+                });
+
+                menu.Items[0].Click += (sender, args) => this.LaunchFileConverter("--radial");
+
+                return menu;
+            }
 
             ToolStripMenuItem fileConverterItem = new ToolStripMenuItem
             {
@@ -162,7 +176,7 @@ namespace FileConverterExtension
                 }
 
                 root.DropDownItems.Add(subItem);
-                subItem.Click += (sender, args) => this.ConvertFiles(menuEntry.PresetReference.FullName);
+                subItem.Click += (sender, args) => this.LaunchFileConverter($"--conversion-preset  \"{menuEntry.PresetReference.FullName}\"");
             }
 
             if (this.menuEntries.Count > 0)
@@ -182,6 +196,21 @@ namespace FileConverterExtension
             }
 
             menu.Items.Add(fileConverterItem);
+
+            if (menuMode == ExtensionMenuMode.ClassicWithRadialEntry)
+            {
+                bool french = this.extensionSettings.ApplicationLanguageName != null
+                    && this.extensionSettings.ApplicationLanguageName.StartsWith("fr", System.StringComparison.OrdinalIgnoreCase);
+
+                ToolStripMenuItem radialItem = new ToolStripMenuItem
+                {
+                    Text = french ? "FileConverter++ (menu radial)…" : "FileConverter++ (radial menu)…",
+                    Image = new Icon(Properties.Resources.ApplicationIcon, SystemInformation.SmallIconSize).ToBitmap(),
+                };
+
+                radialItem.Click += (sender, args) => this.LaunchFileConverter("--radial");
+                menu.Items.Add(radialItem);
+            }
 
             return menu;
         }
@@ -209,7 +238,7 @@ namespace FileConverterExtension
             this.RefreshExtensionCacheFromSelectedItems();
 
             // Activate compatible menu entries.
-            PresetReference[] presets = this.presetReferences;
+            PresetReference[] presets = this.PresetReferences;
             this.menuEntries.Clear();
             foreach (string extension in this.extensionCache)
             {
@@ -240,7 +269,7 @@ namespace FileConverterExtension
 
         private void LoadExtensionSettingsIfNecessary()
         {
-            if (this.presetReferences != null)
+            if (this.extensionSettings != null)
             {
                 return;
             }
@@ -249,7 +278,7 @@ namespace FileConverterExtension
             {
                 try
                 {
-                    XmlHelpers.LoadFromFile("Settings", PathHelpers.UserSettingsFilePath, out this.presetReferences);
+                    XmlHelpers.LoadFromFile("Settings", PathHelpers.UserSettingsFilePath, out this.extensionSettings);
                     return;
                 }
                 catch
@@ -260,7 +289,7 @@ namespace FileConverterExtension
 
             try
             {
-                XmlHelpers.LoadFromFile("Settings", PathHelpers.DefaultSettingsFilePath, out this.presetReferences);
+                XmlHelpers.LoadFromFile("Settings", PathHelpers.DefaultSettingsFilePath, out this.extensionSettings);
             }
             catch
             {
@@ -297,7 +326,7 @@ namespace FileConverterExtension
             Process exeProcess = Process.Start(processStartInfo);
         }
 
-        private void ConvertFiles(string presetName)
+        private void LaunchFileConverter(string modeArguments)
         {
             if (string.IsNullOrEmpty(PathHelpers.FileConverterPath))
             {
@@ -311,18 +340,10 @@ namespace FileConverterExtension
                 return;
             }
 
-            void BuildConversionPresetArgument(StringBuilder sb)
-            {
-                sb.Append("--conversion-preset ");
-                sb.Append(" \"");
-                sb.Append(presetName);
-                sb.Append("\"");
-            }
-
             // Build arguments string.
             StringBuilder stringBuilder = new StringBuilder();
-            BuildConversionPresetArgument(stringBuilder);
-            
+            stringBuilder.Append(modeArguments);
+
             string fileListPath = null;
             foreach (var filePath in this.SelectedItemPaths)
             {
@@ -334,7 +355,7 @@ namespace FileConverterExtension
                 {
                     // Alternative way of passing arguments to not overflow the command line.
                     stringBuilder.Clear();
-                    BuildConversionPresetArgument(stringBuilder);
+                    stringBuilder.Append(modeArguments);
 
                     // Store list of file to convert in a file in Temp folder.
                     fileListPath = Path.Combine(Path.GetTempPath(), "file-converter-input-list.txt");

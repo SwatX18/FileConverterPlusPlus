@@ -461,6 +461,42 @@
       <Visible>false</Visible>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <!-- Radial menu: T1 -->
+    <Compile Include="RadialMenu\Hotkey.cs" />
+    <Compile Include="RadialMenu\PresetCompatibility.cs" />
+    <Compile Include="RadialMenu\RadialAgentController.cs" />
+    <Compile Include="RadialMenu\RadialAgentNames.cs" />
+    <Compile Include="RadialMenu\RadialGeometry.cs" />
+    <Compile Include="RadialMenu\RadialPager.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Radial menu: T3 -->
+    <None Include="App.config" />
+    <Compile Include="RadialMenu\NativeMethods.cs" />
+    <Compile Include="Views\RadialMenuWindow.xaml.cs">
+      <DependentUpon>RadialMenuWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="Views\RadialMenuWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Radial menu: T5 -->
+    <Compile Include="ValueConverters\RadialContextMenuModeToString.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Radial menu: T4 -->
+    <Compile Include="RadialMenu\Agent\AgentNativeMethods.cs" />
+    <Compile Include="RadialMenu\Agent\ConversionProcessLauncher.cs" />
+    <Compile Include="RadialMenu\Agent\CtrlDragDetector.cs" />
+    <Compile Include="RadialMenu\Agent\DropShieldForm.cs" />
+    <Compile Include="RadialMenu\Agent\ExplorerSelection.cs" />
+    <Compile Include="RadialMenu\Agent\HotkeyListener.cs" />
+    <Compile Include="RadialMenu\Agent\RadialAgent.cs" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /Y "$(ProjectDir)..\..\Middleware\ffmpeg\ffmpeg.exe" "$(TargetDir)ffmpeg.exe"

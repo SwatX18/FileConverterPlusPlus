@@ -742,4 +742,55 @@ utilisez MAJ pour une version en majuscules</value>
   <data name="CopyFilesInClipboardAfterConversion" xml:space="preserve">
     <value>Copier les fichiers dans le presse-papiers après la conversion</value>
   </data>
+  <data name="RadialMenu" xml:space="preserve">
+    <value>Menu radial</value>
+  </data>
+  <data name="RadialMenuEnabled" xml:space="preserve">
+    <value>Activer le menu radial</value>
+  </data>
+  <data name="RadialMenuContextMenu" xml:space="preserve">
+    <value>Menu contextuel de l'Explorateur</value>
+  </data>
+  <data name="RadialContextMenuMode_None" xml:space="preserve">
+    <value>Aucune entrée de menu radial</value>
+  </data>
+  <data name="RadialContextMenuMode_ExtraEntry" xml:space="preserve">
+    <value>Ajouter une entrée de menu radial</value>
+  </data>
+  <data name="RadialContextMenuMode_ReplaceSubmenu" xml:space="preserve">
+    <value>Remplacer le sous-menu des presets par le menu radial</value>
+  </data>
+  <data name="RadialMenuHotkeyEnabled" xml:space="preserve">
+    <value>Ouvrir avec un raccourci global (sélection de la fenêtre de l'Explorateur)</value>
+  </data>
+  <data name="RadialMenuHotkey" xml:space="preserve">
+    <value>Raccourci</value>
+  </data>
+  <data name="RadialMenuHotkeyInvalid" xml:space="preserve">
+    <value>Raccourci invalide. Utilisez Ctrl, Alt ou Win avec une touche (par exemple Ctrl+Alt+C).</value>
+  </data>
+  <data name="RadialMenuHotkeyRegistrationFailed" xml:space="preserve">
+    <value>Le raccourci {0} n'a pas pu être enregistré : une autre application l'utilise probablement. Choisissez un autre raccourci dans les paramètres.</value>
+  </data>
+  <data name="RadialMenuCtrlDragEnabled" xml:space="preserve">
+    <value>Ouvrir en faisant glisser des fichiers depuis l'Explorateur avec Ctrl enfoncé</value>
+  </data>
+  <data name="RadialMenuCtrlDragTooltip" xml:space="preserve">
+    <value>Maintenez Ctrl en faisant glisser des fichiers depuis une fenêtre de l'Explorateur, puis déposez-les sur un preset du menu radial. Tant que cette option est activée, les copies par Ctrl+glisser entre fenêtres de l'Explorateur sont capturées par le menu radial.</value>
+  </data>
+  <data name="RadialMenuNoCompatiblePreset" xml:space="preserve">
+    <value>Aucun preset compatible</value>
+  </data>
+  <data name="RadialMenuTrayTooltip" xml:space="preserve">
+    <value>Menu radial FileConverter++</value>
+  </data>
+  <data name="RadialMenuTraySettings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="RadialMenuTrayExit" xml:space="preserve">
+    <value>Quitter</value>
+  </data>
+  <data name="RadialMenuCredit" xml:space="preserve">
+    <value>Menu radial inspiré de Filee (MIT)</value>
+  </data>
 </root>

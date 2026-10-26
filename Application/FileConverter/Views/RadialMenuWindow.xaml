@@ -1,0 +1,39 @@
+<Window x:Class="FileConverter.Views.RadialMenuWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        AutomationProperties.AutomationId="RadialMenuWindow"
+        AutomationProperties.Name="FileConverter++"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent" Topmost="True" ShowInTaskbar="False"
+        ResizeMode="NoResize" WindowStartupLocation="Manual" UseLayoutRounding="True" SnapsToDevicePixels="True"
+        Width="320" Height="320" FontFamily="Segoe UI">
+    <Window.Resources>
+        <!-- Not based on the implicit button style: a slice is only a ring sector. The sector geometry is passed through Tag. -->
+        <Style x:Key="RadialSliceStyle" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Background" Value="{DynamicResource Button_BackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Button_BorderBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent" IsHitTestVisible="True">
+                            <Path Data="{TemplateBinding Tag}" Fill="{TemplateBinding Background}"
+                                  Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1" StrokeLineJoin="Round" />
+                            <ContentPresenter />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid x:Name="Root" Width="320" Height="320" Background="#01000000" AllowDrop="True">
+        <Canvas x:Name="SliceCanvas" Width="320" Height="320" HorizontalAlignment="Left" VerticalAlignment="Top" />
+        <Ellipse x:Name="HubEllipse" Width="110" Height="110" IsHitTestVisible="False"
+                 Fill="{DynamicResource Window_BackgroundBrush}" Stroke="{DynamicResource Button_BorderBrush}" StrokeThickness="1" />
+        <StackPanel x:Name="HubPanel" Width="92" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+            <TextBlock x:Name="HubText" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="60"
+                       FontSize="12" Foreground="{DynamicResource ReadyForegroundBrush}" />
+            <TextBlock x:Name="PageIndicator" AutomationProperties.AutomationId="RadialPageIndicator" TextAlignment="Center"
+                       FontSize="11" Margin="0,3,0,0" Foreground="{DynamicResource LighterForegroundBrush}" Visibility="Collapsed" />
+        </StackPanel>
+    </Grid>
+</Window>

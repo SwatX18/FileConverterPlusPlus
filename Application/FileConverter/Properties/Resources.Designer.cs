@@ -1848,5 +1848,158 @@ namespace FileConverter.Properties {
                 return ResourceManager.GetString("DiagnosticsDescription", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Radial menu.
+        /// </summary>
+        public static string RadialMenu {
+            get {
+                return ResourceManager.GetString("RadialMenu", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Enable the radial menu.
+        /// </summary>
+        public static string RadialMenuEnabled {
+            get {
+                return ResourceManager.GetString("RadialMenuEnabled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Explorer context menu.
+        /// </summary>
+        public static string RadialMenuContextMenu {
+            get {
+                return ResourceManager.GetString("RadialMenuContextMenu", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No radial menu entry.
+        /// </summary>
+        public static string RadialContextMenuMode_None {
+            get {
+                return ResourceManager.GetString("RadialContextMenuMode_None", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Add a radial menu entry.
+        /// </summary>
+        public static string RadialContextMenuMode_ExtraEntry {
+            get {
+                return ResourceManager.GetString("RadialContextMenuMode_ExtraEntry", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Replace the preset submenu with the radial menu.
+        /// </summary>
+        public static string RadialContextMenuMode_ReplaceSubmenu {
+            get {
+                return ResourceManager.GetString("RadialContextMenuMode_ReplaceSubmenu", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open with a global hotkey (selection of the Explorer window).
+        /// </summary>
+        public static string RadialMenuHotkeyEnabled {
+            get {
+                return ResourceManager.GetString("RadialMenuHotkeyEnabled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Hotkey.
+        /// </summary>
+        public static string RadialMenuHotkey {
+            get {
+                return ResourceManager.GetString("RadialMenuHotkey", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid hotkey. Use Ctrl, Alt or Win with a key (for example Ctrl+Alt+C)..
+        /// </summary>
+        public static string RadialMenuHotkeyInvalid {
+            get {
+                return ResourceManager.GetString("RadialMenuHotkeyInvalid", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The hotkey {0} could not be registered: another application probably uses it. Choose another hotkey in the settings..
+        /// </summary>
+        public static string RadialMenuHotkeyRegistrationFailed {
+            get {
+                return ResourceManager.GetString("RadialMenuHotkeyRegistrationFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open when dragging files from Explorer with Ctrl held.
+        /// </summary>
+        public static string RadialMenuCtrlDragEnabled {
+            get {
+                return ResourceManager.GetString("RadialMenuCtrlDragEnabled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Hold Ctrl while dragging files from an Explorer window, then drop them on a preset of the radial menu. While enabled, Ctrl+drag copies between Explorer windows are captured by the radial menu..
+        /// </summary>
+        public static string RadialMenuCtrlDragTooltip {
+            get {
+                return ResourceManager.GetString("RadialMenuCtrlDragTooltip", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No compatible preset.
+        /// </summary>
+        public static string RadialMenuNoCompatiblePreset {
+            get {
+                return ResourceManager.GetString("RadialMenuNoCompatiblePreset", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to FileConverter++ radial menu.
+        /// </summary>
+        public static string RadialMenuTrayTooltip {
+            get {
+                return ResourceManager.GetString("RadialMenuTrayTooltip", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Settings.
+        /// </summary>
+        public static string RadialMenuTraySettings {
+            get {
+                return ResourceManager.GetString("RadialMenuTraySettings", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Exit.
+        /// </summary>
+        public static string RadialMenuTrayExit {
+            get {
+                return ResourceManager.GetString("RadialMenuTrayExit", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Radial menu inspired by Filee (MIT).
+        /// </summary>
+        public static string RadialMenuCredit {
+            get {
+                return ResourceManager.GetString("RadialMenuCredit", resourceCulture);
+            }
+        }
     }
 }

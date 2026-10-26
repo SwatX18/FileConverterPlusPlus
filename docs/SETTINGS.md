@@ -58,3 +58,43 @@ count is the job's budget (`docs/SCHEDULING.md`); hardware encodes don't use it.
 A failed job reports the last path it tried. Each fallback is also logged when it happens
 (`Encoding path 'amf' failed (...). Falling back to 'amf-cpu-decode'.`, `Image engine: imagemagick-fallback (...)`).
 `bench/try-case.ps1` prints these lines.
+
+## Settings → Radial menu (settings version 7)
+
+A Radial menu tab, after Performance, holds the optional radial "donut" menu (design: `docs/ARCHITECTURE.md` §8). Every
+option is off by default, and the options below the master switch are greyed out while it is off.
+
+| Setting (UI) | Element in `Settings.user.xml` | Default | Details |
+|---|---|---|---|
+| Enable the radial menu | `RadialMenuEnabled` | `false` | Master switch. Off: context menu, processes and autostart are exactly as without the feature, whatever the other elements say. |
+| Explorer context menu: Add a radial menu entry (trigger A) | `RadialMenuExtraContextMenuEntry` | `false` | "FileConverter++ (radial menu)…" next to the usual submenu. |
+| Explorer context menu: Replace the preset submenu with the radial menu (trigger B) | `RadialMenuReplaceContextMenu` | `false` | The FileConverter++ entry becomes a single item that opens the radial menu. |
+| Open with a global hotkey (trigger C) | `RadialMenuHotkeyEnabled` | `false` | Needs the tray agent. |
+| Hotkey | `RadialMenuHotkey` | `Ctrl+Alt+C` | Canonical text, see below. |
+| Open when dragging files from Explorer with Ctrl held (trigger D) | `RadialMenuCtrlDragEnabled` | `false` | Needs the tray agent. Tooltip: while enabled, Ctrl+drag copies between Explorer windows are captured by the radial menu. |
+
+**A and B are exclusive.** The UI shows them as one combo box (No radial menu entry / Add a radial menu entry / Replace
+the preset submenu with the radial menu), backed by the `[XmlIgnore]` property `RadialMenuContextMenuMode`, which writes
+both elements. If a hand-edited file sets both to `true`, **B wins**: the application clears A when it loads the file
+(`Settings.OnDeserializationComplete`), and the shell extension, which reads the file itself, resolves the same way
+(`ExtensionSettings.ResolveMenuMode`: master off → classic menu; B → radial entry only; A → classic menu plus the radial
+entry).
+
+**Hotkey format**: `+`-separated, case-insensitive modifiers `Ctrl` (or `Control`), `Alt`, `Shift`, `Win` (or `Windows`)
+and exactly one key (a `System.Windows.Input.Key` name, digits `0`-`9`). Ctrl, Alt or Win is required (`Shift+F5` is
+rejected). Stored in canonical order, e.g. `Ctrl+Alt+Shift+Win+C`. In the Settings box, press the combination to
+record it; Backspace or Delete (without modifier) resets it to `Ctrl+Alt+C`; a key without Ctrl, Alt or Win is ignored.
+While the master switch and the hotkey are on, an invalid hotkey blocks Save with "Invalid hotkey. Use Ctrl, Alt or Win
+with a key". In the file, an empty hotkey is replaced by `Ctrl+Alt+C`; an invalid non-empty one is kept, and the agent
+logs it, shows a tray warning and leaves trigger C inactive. The same warning appears when another application already
+owns the combination.
+On some keyboard layouts `Ctrl+Alt` is the same as AltGr (`Ctrl+Alt+C` types "ć" on Polish keyboards): pick another hotkey there.
+
+**Tray agent**: it runs only when `RadialMenuEnabled` and (`RadialMenuHotkeyEnabled` or `RadialMenuCtrlDragEnabled`)
+(`Settings.ShouldRunRadialAgent`). Saving the settings applies it immediately: the HKCU Run value
+`FileConverterPlusPlus.RadialAgent` is written or removed, and the agent is started, told to reload (a new hotkey takes
+effect without restart) or told to exit. A and B need no agent.
+
+**Migration**: version 6 files have none of these elements; they load with the defaults above (all off), the
+`settingsVersion <= 6` migration step has nothing to change, and the presets are untouched. The file is saved as
+version 7 with the six elements.
