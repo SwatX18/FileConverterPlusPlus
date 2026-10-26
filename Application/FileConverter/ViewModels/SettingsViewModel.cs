@@ -59,6 +59,31 @@ namespace FileConverter.ViewModels
         private Helpers.HardwareAccelerationMode[] hardwareAccelerationModes = { Helpers.HardwareAccelerationMode.Auto, Helpers.HardwareAccelerationMode.Off, Helpers.HardwareAccelerationMode.CUDA, Helpers.HardwareAccelerationMode.AMF };
         private Helpers.ImageEngine[] imageEngines = { Helpers.ImageEngine.Auto, Helpers.ImageEngine.ImageMagick };
 
+        /// <summary>
+        /// Gets the output types of the output format list, in display order (grouped by category). Every output type
+        /// but None must be in it: a preset whose type is missing can't be shown, and would be overwritten by the list.
+        /// </summary>
+        internal static IReadOnlyList<OutputType> SettingsOutputTypes { get; } = new[]
+        {
+            OutputType.Ogg,
+            OutputType.Mp3,
+            OutputType.Aac,
+            OutputType.Flac,
+            OutputType.Wav,
+            OutputType.Mkv,
+            OutputType.Mp4,
+            OutputType.Ogv,
+            OutputType.Webm,
+            OutputType.Avi,
+            OutputType.Png,
+            OutputType.Jpg,
+            OutputType.Webp,
+            OutputType.Avif,
+            OutputType.Ico,
+            OutputType.Gif,
+            OutputType.Pdf,
+        };
+
         public event Action OnPresetCreated;
         public event Action OnFolderCreated;
 
@@ -83,23 +108,7 @@ namespace FileConverter.ViewModels
             ISettingsService settingsService = Ioc.Default.GetRequiredService<ISettingsService>();
             this.Settings = settingsService.Settings;
 
-            List<OutputTypeViewModel> outputTypeViewModels = new List<OutputTypeViewModel>();
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Ogg));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Mp3));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Aac));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Flac));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Wav));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Mkv));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Mp4));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Ogv));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Webm));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Avi));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Png));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Jpg));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Webp));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Ico));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Gif));
-            outputTypeViewModels.Add(new OutputTypeViewModel(OutputType.Pdf));
+            List<OutputTypeViewModel> outputTypeViewModels = SettingsOutputTypes.Select(outputType => new OutputTypeViewModel(outputType)).ToList();
             this.outputTypes = new ListCollectionView(outputTypeViewModels);
             this.outputTypes.GroupDescriptions.Add(new PropertyGroupDescription("Category"));
 
