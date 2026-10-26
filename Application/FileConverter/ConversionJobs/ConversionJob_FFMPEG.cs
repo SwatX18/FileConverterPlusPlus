@@ -25,6 +25,7 @@ namespace FileConverter.ConversionJobs
 
         // Duration written so far by the running attempt (ffmpeg -progress "out_time_us"), null until reported.
         private TimeSpan? attemptOutputDuration;
+        private readonly object attemptOutputDurationLock = new object();
 
         private ProcessStartInfo ffmpegProcessStartInfo;
 
@@ -795,24 +796,18 @@ namespace FileConverter.ConversionJobs
                         exeProcess.OutputDataReceived += (sender, args) => this.ParseFFMPEGProgress(args.Data);
                         exeProcess.BeginOutputReadLine();
 
-                        using (StreamReader reader = exeProcess.StandardError)
+                        // stderr is read asynchronously too: a blocking ReadLine would delay the cancellation until
+                        // ffmpeg writes something.
+                        exeProcess.ErrorDataReceived += (sender, args) =>
                         {
-                            while (!reader.EndOfStream)
+                            if (args.Data != null)
                             {
-                                if (this.CancelIsRequested && !exeProcess.HasExited)
-                                {
-                                    exeProcess.Kill();
-                                }
-
-                                string result = reader.ReadLine();
-
-                                this.ParseFFMPEGOutput(result);
-
-                                Diagnostics.Debug.Log($"ffmpeg output: {result}");
+                                this.OnFFMPEGErrorLine(args.Data);
                             }
-                        }
+                        };
+                        exeProcess.BeginErrorReadLine();
 
-                        exeProcess.WaitForExit();
+                        ProcessCancellation.WaitForExit(exeProcess, () => this.CancelIsRequested);
 
                         if (exeProcess.ExitCode != 0 && !this.CancelIsRequested)
                         {
@@ -860,8 +855,26 @@ namespace FileConverter.ConversionJobs
             if (line != null && line.StartsWith(OutTimeKey, StringComparison.Ordinal) &&
                 long.TryParse(line.Substring(OutTimeKey.Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out long microseconds) && microseconds >= 0)
             {
-                this.attemptOutputDuration = TimeSpan.FromTicks(microseconds * 10);
+                lock (this.attemptOutputDurationLock)
+                {
+                    this.attemptOutputDuration = TimeSpan.FromTicks(microseconds * 10);
+                }
             }
+        }
+
+        private void OnFFMPEGErrorLine(string line)
+        {
+            // Runs on a thread pool thread: an exception here would crash the application.
+            try
+            {
+                this.ParseFFMPEGOutput(line);
+            }
+            catch (Exception exception)
+            {
+                Diagnostics.Debug.Log($"Can't parse ffmpeg output '{line}': {exception.Message}");
+            }
+
+            Diagnostics.Debug.Log($"ffmpeg output: {line}");
         }
 
         private void ParseFFMPEGOutput(string input)
