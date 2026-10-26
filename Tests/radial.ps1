@@ -490,8 +490,7 @@ function Test-GroupC {
     $run = (Get-ItemProperty $runKeyPath -Name $runValueName -ErrorAction SilentlyContinue).$runValueName
     Check 'c.Run value present' ($run -eq "`"$Exe`" --agent") "value: $run"
     # two more starts -> still one process
-    # Started >1 s apart: two processes started within the same second share one log file and the second crashes (Debug..cctor IOException, pre-existing logging bug, reported separately).
-    $s1 = Start-App @('--agent'); Start-Sleep -Milliseconds 1200; $s2 = Start-App @('--agent')
+    $s1 = Start-App @('--agent'); $s2 = Start-App @('--agent')
     [void](Wait-Exit $s1 10000); [void](Wait-Exit $s2 10000)
     Check 'c.second and third --agent exit by themselves, code 0' ($s1.HasExited -and $s2.HasExited -and $s1.ExitCode -eq 0 -and $s2.ExitCode -eq 0) "exit codes: $($s1.ExitCode), $($s2.ExitCode)"
     $agents = @(Get-AgentProcesses)
@@ -670,7 +669,7 @@ function Test-GroupEdge {
     }
     else { Check 'edge.weird preset name: donut opens' $false }
     Stop-Tree $r.Process
-    # the agent's child process command line (ConversionProcessLauncher.BuildArguments: quotes escaped with a backslash)
+    # the agent's child process command line (ConversionProcessLauncher.BuildArguments)
     foreach ($name in $weird, 'Plain/Name', 'Trailing backslash\') {
         $dirN = Join-Path $work ('edge-arg-' + [guid]::NewGuid().ToString('N').Substring(0, 6)); New-Item -ItemType Directory -Force $dirN | Out-Null
         $srcN = Join-Path $dirN 'n.png'; New-TinyImage $srcN
@@ -681,7 +680,9 @@ function Test-GroupEdge {
             $c = $src.CloneNode($true); $c.SetAttribute('Name', $nm); $c.RemoveAttribute('IsDefaultSettings')
             [void]$doc.Settings.AppendChild($c)
         }
-        $raw = "--conversion-preset `"$($name.Replace('"', '\"'))`" `"$srcN`""
+        # Windows quoting as done by ConversionProcessLauncher.Quote: backslashes before a quote or the closing quote are doubled.
+        $quoted = '"' + (($name -replace '(\\*)"', '$1$1\"') -replace '(\\+)$', '$1$1') + '"'
+        $raw = "--conversion-preset $quoted `"$srcN`""
         $p = Start-App @() $raw; $exited = Wait-Exit $p 60000
         Check "edge.child command line with preset '$name'" ($exited -and (Test-Path (Join-Path $dirN 'n.jpg'))) "args: $raw ; exited=$exited, files: $((Get-ChildItem $dirN -Name) -join ', ')"
         Stop-Tree $p

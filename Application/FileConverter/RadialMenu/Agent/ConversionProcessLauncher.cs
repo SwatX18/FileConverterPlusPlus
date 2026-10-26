@@ -24,24 +24,57 @@ namespace FileConverter.RadialMenu.Agent
         {
             listFilePath = null;
 
-            string presetArgument = $"--conversion-preset \"{presetFullName.Replace("\"", "\\\"")}\"";
+            string presetArgument = $"--conversion-preset {Quote(presetFullName)}";
 
             StringBuilder stringBuilder = new StringBuilder(presetArgument);
             foreach (string filePath in files)
             {
-                stringBuilder.Append(" \"");
-                stringBuilder.Append(filePath);
-                stringBuilder.Append("\"");
+                stringBuilder.Append(' ');
+                stringBuilder.Append(Quote(filePath));
 
                 if (stringBuilder.Length >= MaximumProcessArgumentsLength)
                 {
                     // Alternative way of passing arguments to not overflow the command line.
                     listFilePath = createListFile();
-                    return $"{presetArgument} --input-files \"{listFilePath}\"";
+                    return $"{presetArgument} --input-files {Quote(listFilePath)}";
                 }
             }
 
             return stringBuilder.ToString();
+        }
+
+        /// <summary>Quotes one argument following the Windows command line rules (CommandLineToArgvW).</summary>
+        public static string Quote(string argument)
+        {
+            StringBuilder builder = new StringBuilder(argument.Length + 2);
+            builder.Append('"');
+            int backslashes = 0;
+            foreach (char character in argument)
+            {
+                if (character == '\\')
+                {
+                    backslashes++;
+                    continue;
+                }
+
+                if (character == '"')
+                {
+                    // Backslashes before a quote are doubled, then the quote is escaped.
+                    builder.Append('\\', (backslashes * 2) + 1);
+                }
+                else
+                {
+                    builder.Append('\\', backslashes);
+                }
+
+                backslashes = 0;
+                builder.Append(character);
+            }
+
+            // Backslashes before the closing quote are doubled.
+            builder.Append('\\', backslashes * 2);
+            builder.Append('"');
+            return builder.ToString();
         }
 
         public static void Launch(string exePath, string presetFullName, IReadOnlyList<string> files)
