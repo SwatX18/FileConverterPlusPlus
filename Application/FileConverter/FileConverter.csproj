@@ -142,6 +142,7 @@
     <Compile Include="Hardware\IHardwareEncoderDetector.cs" />
     <Compile Include="Hardware\IProcessRunner.cs" />
     <Compile Include="Hardware\ProcessRunner.cs" />
+    <Compile Include="ProcessCancellation.cs" />
     <Compile Include="Hardware\VideoCodec.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Hardware\HardwareEncoderSummary.cs" />
