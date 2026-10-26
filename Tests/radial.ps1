@@ -996,6 +996,14 @@ function Test-GroupUi {
         Check 'ui.hotkey box: Ctrl+Alt+F9 accepted' ((& $value) -eq 'Ctrl+Alt+F9') "value: $(& $value)"
         Send-Key 0x08
         Check 'ui.hotkey box: Backspace resets to Ctrl+Alt+C' ((& $value) -eq 'Ctrl+Alt+C') "value: $(& $value)"
+        $hotkeyBox.SetFocus(); Start-Sleep -Milliseconds 300
+        Send-Key 0x09
+        Check 'ui.hotkey box: Tab moves the focus out, value unchanged' (-not $hotkeyBox.Current.HasKeyboardFocus -and (& $value) -eq 'Ctrl+Alt+C') "focus=$($hotkeyBox.Current.HasKeyboardFocus) value=$(& $value)"
+        Send-Key 0x09 -Shift
+        Check 'ui.hotkey box: Shift+Tab from the next control comes back to the box' ($hotkeyBox.Current.HasKeyboardFocus) "focus=$($hotkeyBox.Current.HasKeyboardFocus)"
+        Send-Key 0x09 -Shift
+        Check 'ui.hotkey box: Shift+Tab moves the focus out backwards, value unchanged' (-not $hotkeyBox.Current.HasKeyboardFocus -and (& $value) -eq 'Ctrl+Alt+C') "focus=$($hotkeyBox.Current.HasKeyboardFocus) value=$(& $value)"
+        $hotkeyBox.SetFocus(); Start-Sleep -Milliseconds 300
         [Native]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero); [Native]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero); [Native]::keybd_event(0x10, 0, 0, [UIntPtr]::Zero)
         Send-Key 0x7A   # Ctrl+Alt+Shift+F11, the test hotkey
         [Native]::keybd_event(0x10, 0, 2, [UIntPtr]::Zero); [Native]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero); [Native]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero); Start-Sleep -Milliseconds 200
