@@ -18,6 +18,9 @@ namespace FileConverter.RadialMenu.Agent
     {
         public const int MaximumProcessArgumentsLength = 8000;
 
+        // Specific to the agent: the shell extension has its own list files in the same folder.
+        private const string ListFilePrefix = "file-converter-radial-list";
+
         /// <param name="createListFile">Writes the list of files and returns its path. Only called if the command line would be too long.</param>
         /// <param name="listFilePath">Path returned by <paramref name="createListFile"/>, or null if no list file is used.</param>
         public static string BuildArguments(string presetFullName, IReadOnlyList<string> files, Func<string> createListFile, out string listFilePath)
@@ -77,6 +80,30 @@ namespace FileConverter.RadialMenu.Agent
             return builder.ToString();
         }
 
+        /// <summary>Deletes the list files left in the Temp folder by a previous agent (killed conversion process, crash...).</summary>
+        public static void DeleteStaleListFiles(TimeSpan minimumAge)
+        {
+            try
+            {
+                foreach (string path in Directory.GetFiles(Path.GetTempPath(), ListFilePrefix + "*.txt"))
+                {
+                    try
+                    {
+                        if (DateTime.UtcNow - File.GetLastWriteTimeUtc(path) > minimumAge)
+                        {
+                            File.Delete(path);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
         public static void Launch(string exePath, string presetFullName, IReadOnlyList<string> files)
         {
             string listFilePath = null;
@@ -114,11 +141,11 @@ namespace FileConverter.RadialMenu.Agent
         private static string CreateListFile(IReadOnlyList<string> files)
         {
             // Store the list of files to convert in a file in the Temp folder.
-            string fileListPath = Path.Combine(Path.GetTempPath(), "file-converter-input-list.txt");
+            string fileListPath = Path.Combine(Path.GetTempPath(), ListFilePrefix + ".txt");
             int index = 1;
             while (File.Exists(fileListPath))
             {
-                fileListPath = Path.Combine(Path.GetTempPath(), $"file-converter-input-list-{index}.txt");
+                fileListPath = Path.Combine(Path.GetTempPath(), $"{ListFilePrefix}-{index}.txt");
                 index++;
             }
 

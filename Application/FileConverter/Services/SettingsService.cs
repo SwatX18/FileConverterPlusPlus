@@ -103,14 +103,21 @@ namespace FileConverter.Services
             Settings settings = userSettings != null ? userSettings.Merge(defaultSettings) : defaultSettings;
             bool saved = this.Save(settings);
 
-            // Make the radial menu autostart and tray agent match the settings (an upgrade can change the executable path).
+            // Make the radial menu autostart and running agent match the settings (an upgrade can change the executable path).
+            // An agent is never started from here: the installer can run elevated.
             try
             {
-                RadialMenu.RadialAgentController.ApplySettings(settings, Process.GetCurrentProcess().MainModule.FileName);
+                string exePath;
+                using (Process currentProcess = Process.GetCurrentProcess())
+                {
+                    exePath = currentProcess.MainModule.FileName;
+                }
+
+                RadialMenu.RadialAgentController.ApplySettings(settings, exePath, allowStart: false);
             }
             catch (Exception exception)
             {
-                Debug.LogError($"Failed to apply the radial menu settings: {exception.Message}");
+                Debug.Log($"Failed to apply the radial menu settings: {exception.Message}");
             }
 
             return saved;

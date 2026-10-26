@@ -128,14 +128,25 @@ namespace FileConverter.RadialMenu.Agent
                 return IntPtr.Zero;
             }
 
+            object browser = null;
             try
             {
-                IOleWindow oleWindow = (IOleWindow)Marshal.GetObjectForIUnknown(pointer);
+                browser = Marshal.GetObjectForIUnknown(pointer);
+                IOleWindow oleWindow = (IOleWindow)browser;
                 return oleWindow.GetWindow(out IntPtr window) == 0 ? window : IntPtr.Zero;
             }
             finally
             {
+                ReleaseComObject(browser);
                 Marshal.Release(pointer);
+            }
+        }
+
+        private static void ReleaseComObject(object comObject)
+        {
+            if (comObject != null && Marshal.IsComObject(comObject))
+            {
+                Marshal.FinalReleaseComObject(comObject);
             }
         }
 
@@ -152,49 +163,82 @@ namespace FileConverter.RadialMenu.Agent
             // With tabs (Windows 11) every tab is a shell window sharing the top level HWND: match the browser window of the active tab.
             IntPtr activeTab = FindActiveTab(explorerWindow);
 
-            dynamic shell = Activator.CreateInstance(shellType);
+            // The thread is short lived but Explorer is not: release every COM object explicitly.
+            dynamic shell = null;
+            dynamic windows = null;
             dynamic selectedItems = null;
-            foreach (dynamic shellWindow in shell.Windows())
+            try
             {
-                try
+                shell = Activator.CreateInstance(shellType);
+                windows = shell.Windows();
+                foreach (dynamic shellWindow in windows)
                 {
-                    bool isMatch;
-                    if (activeTab != IntPtr.Zero)
+                    try
                     {
-                        isMatch = GetBrowserWindow((object)shellWindow) == activeTab;
-                    }
-                    else
-                    {
-                        isMatch = new IntPtr((long)shellWindow.HWND) == explorerWindow;
-                    }
+                        bool isMatch;
+                        if (activeTab != IntPtr.Zero)
+                        {
+                            isMatch = GetBrowserWindow((object)shellWindow) == activeTab;
+                        }
+                        else
+                        {
+                            isMatch = new IntPtr((long)shellWindow.HWND) == explorerWindow;
+                        }
 
-                    if (isMatch)
+                        if (isMatch)
+                        {
+                            dynamic document = shellWindow.Document;
+                            try
+                            {
+                                selectedItems = document.SelectedItems();
+                            }
+                            finally
+                            {
+                                ReleaseComObject(document);
+                            }
+
+                            break;
+                        }
+                    }
+                    catch (Exception)
                     {
-                        selectedItems = shellWindow.Document.SelectedItems();
-                        break;
+                        // Not an Explorer window (Internet Explorer...) or a window that is closing.
+                    }
+                    finally
+                    {
+                        ReleaseComObject(shellWindow);
                     }
                 }
-                catch (Exception)
-                {
-                    // Not an Explorer window (Internet Explorer...) or a window that is closing.
-                }
-            }
 
-            if (selectedItems == null)
-            {
+                if (selectedItems == null)
+                {
+                    return paths;
+                }
+
+                foreach (dynamic item in selectedItems)
+                {
+                    try
+                    {
+                        string path = item.Path;
+                        if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                        {
+                            paths.Add(path);
+                        }
+                    }
+                    finally
+                    {
+                        ReleaseComObject(item);
+                    }
+                }
+
                 return paths;
             }
-
-            foreach (dynamic item in selectedItems)
+            finally
             {
-                string path = item.Path;
-                if (!string.IsNullOrEmpty(path) && File.Exists(path))
-                {
-                    paths.Add(path);
-                }
+                ReleaseComObject(selectedItems);
+                ReleaseComObject(windows);
+                ReleaseComObject(shell);
             }
-
-            return paths;
         }
     }
 }

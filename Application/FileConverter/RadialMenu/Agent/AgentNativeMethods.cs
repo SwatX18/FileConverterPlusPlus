@@ -14,6 +14,7 @@ namespace FileConverter.RadialMenu.Agent
         public const int WM_MOUSEMOVE = 0x0200;
         public const int WM_HOTKEY = 0x0312;
         public const int WM_QUIT = 0x0012;
+        public const int VK_LBUTTON = 0x01;
         public const int VK_CONTROL = 0x11;
         public const int SM_CXDRAG = 68;
         public const int SM_CYDRAG = 69;

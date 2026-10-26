@@ -88,6 +88,7 @@ While the master switch and the hotkey are on, an invalid hotkey blocks Save wit
 with a key". In the file, an empty hotkey is replaced by `Ctrl+Alt+C`; an invalid non-empty one is kept, and the agent
 logs it, shows a tray warning and leaves trigger C inactive. The same warning appears when another application already
 owns the combination.
+On some keyboard layouts `Ctrl+Alt` is the same as AltGr (`Ctrl+Alt+C` types "ć" on Polish keyboards): pick another hotkey there.
 
 **Tray agent**: it runs only when `RadialMenuEnabled` and (`RadialMenuHotkeyEnabled` or `RadialMenuCtrlDragEnabled`)
 (`Settings.ShouldRunRadialAgent`). Saving the settings applies it immediately: the HKCU Run value

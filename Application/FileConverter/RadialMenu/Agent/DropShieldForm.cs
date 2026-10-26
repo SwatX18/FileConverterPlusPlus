@@ -12,7 +12,7 @@ namespace FileConverter.RadialMenu.Agent
     /// </summary>
     internal sealed class DropShieldForm : Form
     {
-        public DropShieldForm(Rectangle screenBounds, Action<IDataObject> onDragEnter)
+        public DropShieldForm(Rectangle screenBounds, Action<IDataObject> onDragEnter, Action onStaleClick)
         {
             this.FormBorderStyle = FormBorderStyle.None;
             this.ShowInTaskbar = false;
@@ -29,6 +29,11 @@ namespace FileConverter.RadialMenu.Agent
                 onDragEnter(e.Data);
             };
             this.DragOver += (sender, e) => e.Effect = DragDropEffects.None;
+
+            // During a real drag (or a rubber band selection) Explorer holds the mouse capture: a click reaching a shield means
+            // the button-up of the drag was missed and the shield is stuck.
+            this.MouseDown += (sender, e) => onStaleClick();
+            this.MouseUp += (sender, e) => onStaleClick();
         }
 
         protected override bool ShowWithoutActivation => true;

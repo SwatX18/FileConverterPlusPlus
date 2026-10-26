@@ -483,10 +483,13 @@ function Test-GroupC {
     Clear-Logs
     $hotkey = 'Ctrl+Alt+Shift+F11'
     Write-UserSettings @{ RadialMenuEnabled = 'true'; RadialMenuHotkeyEnabled = 'true'; RadialMenuHotkey = $hotkey }
-    # --post-install-init applies the settings: Run value + agent start (what the installer does).
+    # --post-install-init applies the settings: Run value, but it must not start the agent (the installer can run elevated).
     $init = Start-App @('--post-install-init'); [void](Wait-Exit $init 20000)
+    Start-Sleep -Milliseconds 1500
+    Check 'c.post-install-init does not start the agent' (-not (Test-AgentRunning))
+    $agentStart = Start-App @('--agent')
     $ms = Wait-Until { Test-AgentRunning } 10000
-    Check 'c.post-install-init with master+C on starts the agent' ($ms -ge 0)
+    Check 'c.--agent with master+C on starts the agent' ($ms -ge 0)
     $run = (Get-ItemProperty $runKeyPath -Name $runValueName -ErrorAction SilentlyContinue).$runValueName
     Check 'c.Run value present' ($run -eq "`"$Exe`" --agent") "value: $run"
     # two more starts -> still one process
@@ -523,7 +526,7 @@ function Test-GroupC {
 
     # --stop-agent
     Write-UserSettings @{ RadialMenuEnabled = 'true'; RadialMenuHotkeyEnabled = 'true'; RadialMenuHotkey = $hotkey }
-    $init = Start-App @('--post-install-init'); [void](Wait-Exit $init 20000)
+    $init = Start-App @('--agent')
     $null = Wait-Until { Test-AgentRunning } 10000
     Check 'c.agent restarted for --stop-agent' (Test-AgentRunning)
     $sw = [Diagnostics.Stopwatch]::StartNew()

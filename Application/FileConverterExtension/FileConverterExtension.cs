@@ -67,7 +67,7 @@ namespace FileConverterExtension
             {
                 this.LoadExtensionSettingsIfNecessary();
 
-                return this.extensionSettings?.ConversionPresets;
+                return this.extensionSettings?.ConversionPresets ?? new PresetReference[0];
             }
         }
 

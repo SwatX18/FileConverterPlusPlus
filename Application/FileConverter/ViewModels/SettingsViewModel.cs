@@ -641,7 +641,13 @@ namespace FileConverter.ViewModels
             // Start, reload or stop the radial menu tray agent according to the saved settings.
             try
             {
-                RadialMenu.RadialAgentController.ApplySettings(this.settings, Process.GetCurrentProcess().MainModule.FileName);
+                string exePath;
+                using (Process currentProcess = Process.GetCurrentProcess())
+                {
+                    exePath = currentProcess.MainModule.FileName;
+                }
+
+                RadialMenu.RadialAgentController.ApplySettings(this.settings, exePath);
             }
             catch (Exception exception)
             {

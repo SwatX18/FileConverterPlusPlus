@@ -376,6 +376,13 @@ namespace FileConverter.Views
                 return;
             }
 
+            // Only capture combinations that can be a hotkey: Shift+Tab (focus), Shift alone... go through, and so does Alt+F4 (close).
+            bool hasHotkeyModifier = (modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != ModifierKeys.None;
+            if (!hasHotkeyModifier || (modifiers == ModifierKeys.Alt && key == Key.F4))
+            {
+                return;
+            }
+
             args.Handled = true;
             if (RadialMenu.Hotkey.TryFromKeyEvent(modifiers, key, out RadialMenu.Hotkey hotkey))
             {

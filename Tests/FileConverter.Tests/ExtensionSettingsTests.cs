@@ -66,6 +66,16 @@ namespace FileConverter.Tests
         }
 
         [Fact]
+        public void Deserialize_FileWithoutPresets_DoesNotThrow()
+        {
+            ExtensionSettings settings = this.Load("<Settings><Version>7</Version><RadialMenuEnabled>true</RadialMenuEnabled></Settings>");
+
+            // The extension treats a missing list as empty (it runs inside explorer.exe).
+            Assert.Empty(settings.ConversionPresets ?? new PresetReference[0]);
+            Assert.Equal(ExtensionMenuMode.Classic, settings.GetMenuMode());
+        }
+
+        [Fact]
         public void Deserialize_FileWithoutLanguage_HasNullLanguage()
         {
             ExtensionSettings settings = this.Load("<Settings>" + PresetsXml + "</Settings>");

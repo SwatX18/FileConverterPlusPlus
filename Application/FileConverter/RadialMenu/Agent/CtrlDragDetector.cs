@@ -20,11 +20,9 @@ namespace FileConverter.RadialMenu.Agent
         private const string ExplorerWindowClass = "CabinetWClass";
 
         private readonly Dispatcher dispatcher;
-        private readonly AgentNativeMethods.LowLevelMouseProc callback;
 
         private Thread thread;
-        private uint threadId;
-        private IntPtr hook;
+        private HookSession session;
         private bool isPressed;
         private bool isPressedOnExplorer;
         private bool hasStarted;
@@ -33,12 +31,12 @@ namespace FileConverter.RadialMenu.Agent
         public CtrlDragDetector(Dispatcher dispatcher)
         {
             this.dispatcher = dispatcher;
-            this.callback = this.HookProc;
         }
 
         /// <summary>Raised once per button press when a Ctrl+drag starts. Argument: Stopwatch timestamp of the detection.</summary>
         public event EventHandler<long> CtrlDragStarted;
 
+        /// <summary>Raised on every left button release, the listener decides if it matters.</summary>
         public event EventHandler MouseReleased;
 
         public bool IsRunning => this.thread != null;
@@ -50,18 +48,21 @@ namespace FileConverter.RadialMenu.Agent
                 return;
             }
 
-            using (ManualResetEventSlim installed = new ManualResetEventSlim(false))
+            // Each hook thread owns its handle: a thread that outlives a Stop can never unhook a newer hook.
+            HookSession newSession = new HookSession();
+            Thread newThread = new Thread(() => this.Run(newSession)) { IsBackground = true, Name = "RadialCtrlDragHook", Priority = ThreadPriority.Highest };
+            newThread.Start();
+            newSession.Installed.Wait();
+
+            if (newSession.Hook == IntPtr.Zero)
             {
-                this.thread = new Thread(() => this.Run(installed)) { IsBackground = true, Name = "RadialCtrlDragHook" };
-                this.thread.Start();
-                installed.Wait();
+                newThread.Join();
+                return;
             }
 
-            if (this.hook == IntPtr.Zero)
-            {
-                this.thread.Join();
-                this.thread = null;
-            }
+            Debug.Log($"Radial menu agent: Ctrl+drag mouse hook installed (thread {newSession.ThreadId}).");
+            this.thread = newThread;
+            this.session = newSession;
         }
 
         public void Stop()
@@ -73,7 +74,8 @@ namespace FileConverter.RadialMenu.Agent
             }
 
             this.thread = null;
-            AgentNativeMethods.PostThreadMessage(this.threadId, AgentNativeMethods.WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+            AgentNativeMethods.PostThreadMessage(this.session.ThreadId, AgentNativeMethods.WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+            this.session = null;
             stoppedThread.Join(1000);
         }
 
@@ -82,17 +84,20 @@ namespace FileConverter.RadialMenu.Agent
             this.Stop();
         }
 
-        private void Run(ManualResetEventSlim installed)
+        private void Run(HookSession hookSession)
         {
-            this.threadId = AgentNativeMethods.GetCurrentThreadId();
-            this.hook = AgentNativeMethods.SetWindowsHookEx(AgentNativeMethods.WH_MOUSE_LL, this.callback, IntPtr.Zero, 0);
-            if (this.hook == IntPtr.Zero)
+            hookSession.ThreadId = AgentNativeMethods.GetCurrentThreadId();
+
+            // Kept alive by this frame for as long as the hook is installed.
+            AgentNativeMethods.LowLevelMouseProc callback = (code, wParam, lParam) => this.HookProc(hookSession, code, wParam, lParam);
+            hookSession.Hook = AgentNativeMethods.SetWindowsHookEx(AgentNativeMethods.WH_MOUSE_LL, callback, IntPtr.Zero, 0);
+            if (hookSession.Hook == IntPtr.Zero)
             {
                 Debug.Log($"Radial menu agent: can't install the mouse hook (error {Marshal.GetLastWin32Error()}), Ctrl+drag is inactive.");
             }
 
-            installed.Set();
-            if (this.hook == IntPtr.Zero)
+            hookSession.Installed.Set();
+            if (hookSession.Hook == IntPtr.Zero)
             {
                 return;
             }
@@ -103,11 +108,11 @@ namespace FileConverter.RadialMenu.Agent
                 AgentNativeMethods.DispatchMessage(ref message);
             }
 
-            AgentNativeMethods.UnhookWindowsHookEx(this.hook);
-            this.hook = IntPtr.Zero;
+            AgentNativeMethods.UnhookWindowsHookEx(hookSession.Hook);
+            GC.KeepAlive(callback);
         }
 
-        private IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam)
+        private IntPtr HookProc(HookSession hookSession, int code, IntPtr wParam, IntPtr lParam)
         {
             if (code >= 0)
             {
@@ -121,7 +126,7 @@ namespace FileConverter.RadialMenu.Agent
                 }
             }
 
-            return AgentNativeMethods.CallNextHookEx(this.hook, code, wParam, lParam);
+            return AgentNativeMethods.CallNextHookEx(hookSession.Hook, code, wParam, lParam);
         }
 
         private void Handle(int message, NativeMethods.POINT point)
@@ -152,16 +157,21 @@ namespace FileConverter.RadialMenu.Agent
                     break;
 
                 case AgentNativeMethods.WM_LBUTTONUP:
-                    bool wasStarted = this.hasStarted;
                     this.isPressed = false;
                     this.hasStarted = false;
-                    if (wasStarted)
-                    {
-                        this.dispatcher.BeginInvoke(DispatcherPriority.Send, (Action)(() => this.MouseReleased?.Invoke(this, EventArgs.Empty)));
-                    }
 
+                    // Always reported: if the button-up of a drag was missed, any later release removes the stuck drop shields.
+                    this.dispatcher.BeginInvoke(DispatcherPriority.Send, (Action)(() => this.MouseReleased?.Invoke(this, EventArgs.Empty)));
                     break;
             }
+        }
+
+        private sealed class HookSession
+        {
+            public readonly ManualResetEventSlim Installed = new ManualResetEventSlim(false);
+
+            public uint ThreadId;
+            public IntPtr Hook;
         }
     }
 }

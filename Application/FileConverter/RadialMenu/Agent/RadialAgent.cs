@@ -31,6 +31,7 @@ namespace FileConverter.RadialMenu.Agent
     internal sealed class RadialAgent : IDisposable
     {
         private static readonly TimeSpan DragTeardownGrace = TimeSpan.FromMilliseconds(150);
+        private const double StuckShieldTimeoutMilliseconds = 1000;
 
         private readonly Dispatcher dispatcher;
         private readonly string exePath;
@@ -47,6 +48,8 @@ namespace FileConverter.RadialMenu.Agent
         private HotkeyListener hotkeyListener;
         private CtrlDragDetector dragDetector;
         private DispatcherTimer teardownTimer;
+        private DispatcherTimer stuckShieldTimer;
+        private long buttonUpSince;
         private long dragTimestamp;
         private bool isDropMenuRequested;
         private bool isDisposed;
@@ -54,7 +57,10 @@ namespace FileConverter.RadialMenu.Agent
         public RadialAgent()
         {
             this.dispatcher = System.Windows.Application.Current.Dispatcher;
-            this.exePath = Process.GetCurrentProcess().MainModule.FileName;
+            using (Process process = Process.GetCurrentProcess())
+            {
+                this.exePath = process.MainModule.FileName;
+            }
         }
 
         /// <summary>Starts the agent. Returns false if the process has nothing to do and should exit.</summary>
@@ -97,6 +103,8 @@ namespace FileConverter.RadialMenu.Agent
                 return false;
             }
 
+            ConversionProcessLauncher.DeleteStaleListFiles(TimeSpan.FromDays(1));
+
             this.CreateTrayIcon();
 
             // The menu is created hidden once, showing it later is cheap.
@@ -107,6 +115,10 @@ namespace FileConverter.RadialMenu.Agent
 
             this.teardownTimer = new DispatcherTimer(DispatcherPriority.Send, this.dispatcher) { Interval = DragTeardownGrace };
             this.teardownTimer.Tick += (sender, args) => this.EndDrag();
+
+            // Safety net: shields are removed if the button has been up for a while (a missed button-up event).
+            this.stuckShieldTimer = new DispatcherTimer(DispatcherPriority.Normal, this.dispatcher) { Interval = TimeSpan.FromMilliseconds(250) };
+            this.stuckShieldTimer.Tick += (sender, args) => this.CheckStuckShields();
 
             this.ApplyTriggers(settingsService.Settings);
             Debug.Log("Radial menu agent started.");
@@ -129,6 +141,7 @@ namespace FileConverter.RadialMenu.Agent
             this.dragDetector?.Dispose();
             this.hotkeyListener?.Dispose();
             this.teardownTimer?.Stop();
+            this.stuckShieldTimer?.Stop();
             this.DisposeShields();
 
             if (this.donut != null)
@@ -276,6 +289,8 @@ namespace FileConverter.RadialMenu.Agent
             }
             else
             {
+                // Shields would stay up without the button-up event.
+                this.EndDrag();
                 this.dragDetector?.Stop();
             }
         }
@@ -314,11 +329,14 @@ namespace FileConverter.RadialMenu.Agent
             this.dragTimestamp = timestamp;
             this.isDropMenuRequested = false;
 
+            this.buttonUpSince = 0;
+            this.stuckShieldTimer.Start();
+
             foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens)
             {
                 try
                 {
-                    DropShieldForm shield = new DropShieldForm(screen.Bounds, this.Shield_DragEnter);
+                    DropShieldForm shield = new DropShieldForm(screen.Bounds, this.Shield_DragEnter, () => this.dispatcher.BeginInvoke((Action)this.EndDrag));
                     this.shields.Add(shield);
                     shield.Show();
                 }
@@ -360,12 +378,39 @@ namespace FileConverter.RadialMenu.Agent
         private void EndDrag()
         {
             this.teardownTimer.Stop();
+            this.stuckShieldTimer.Stop();
             this.DisposeShields();
 
             if (this.isDropMenuRequested)
             {
                 this.isDropMenuRequested = false;
                 this.donut.Dismiss();
+            }
+        }
+
+        private void CheckStuckShields()
+        {
+            if (this.shields.Count == 0)
+            {
+                this.stuckShieldTimer.Stop();
+                return;
+            }
+
+            if ((AgentNativeMethods.GetAsyncKeyState(AgentNativeMethods.VK_LBUTTON) & 0x8000) != 0)
+            {
+                this.buttonUpSince = 0;
+                return;
+            }
+
+            long now = Stopwatch.GetTimestamp();
+            if (this.buttonUpSince == 0)
+            {
+                this.buttonUpSince = now;
+            }
+            else if ((now - this.buttonUpSince) * 1000d / Stopwatch.Frequency > StuckShieldTimeoutMilliseconds)
+            {
+                Debug.Log("Radial menu agent: the mouse button is up but the drop shields are still shown, remove them.");
+                this.EndDrag();
             }
         }
 

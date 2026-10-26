@@ -203,7 +203,13 @@ namespace FileConverter
         private void RadialWindow_ContentRendered(object sender, EventArgs e)
         {
             this.radialWindow.ContentRendered -= this.RadialWindow_ContentRendered;
-            double elapsed = (DateTime.Now - Process.GetCurrentProcess().StartTime).TotalMilliseconds;
+            DateTime processStartTime;
+            using (Process currentProcess = Process.GetCurrentProcess())
+            {
+                processStartTime = currentProcess.StartTime;
+            }
+
+            double elapsed = (DateTime.Now - processStartTime).TotalMilliseconds;
             Debug.Log($"Radial menu shown in {(int)elapsed} ms (from process start).");
         }
 
@@ -475,7 +481,12 @@ namespace FileConverter
 
                         case "stop-agent":
                             {
-                                string exePath = Process.GetCurrentProcess().MainModule.FileName;
+                                string exePath;
+                                using (Process currentProcess = Process.GetCurrentProcess())
+                                {
+                                    exePath = currentProcess.MainModule.FileName;
+                                }
+
                                 if (!RadialMenu.RadialAgentController.StopAgent(TimeSpan.FromSeconds(2)))
                                 {
                                     Debug.Log("The radial menu agent didn't exit in time.");

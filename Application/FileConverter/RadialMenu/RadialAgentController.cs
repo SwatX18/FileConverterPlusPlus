@@ -58,6 +58,16 @@ namespace FileConverter.RadialMenu
         /// </summary>
         public static void ApplySettings(Settings settings, string exePath)
         {
+            ApplySettings(settings, exePath, allowStart: true);
+        }
+
+        /// <summary>
+        /// Same as <see cref="ApplySettings(Settings, string)"/>, but the agent is only started if <paramref name="allowStart"/> is true.
+        /// The post installation initialization must not start it: the installer can run elevated and the agent has to run at the
+        /// integrity level of the user session (it starts at next logon, or when the settings are saved).
+        /// </summary>
+        public static void ApplySettings(Settings settings, string exePath, bool allowStart)
+        {
             bool shouldRun = settings.ShouldRunRadialAgent;
             SetAutostart(shouldRun, exePath);
 
@@ -66,7 +76,12 @@ namespace FileConverter.RadialMenu
             switch (action)
             {
                 case AgentAction.Start:
-                    Process.Start(exePath, "--agent");
+                    if (!allowStart)
+                    {
+                        break;
+                    }
+
+                    Process.Start(exePath, "--agent")?.Dispose();
                     break;
 
                 case AgentAction.Reload:

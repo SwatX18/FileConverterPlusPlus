@@ -119,6 +119,12 @@ namespace FileConverter.Views
             {
                 this.Activate();
             }
+
+            if (mode == RadialMenuInputMode.Drop)
+            {
+                // Deterministically above the drop shields of the agent, which are topmost too.
+                NativeMethods.SetWindowPos(new WindowInteropHelper(this).Handle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+            }
         }
 
         public void Dismiss()

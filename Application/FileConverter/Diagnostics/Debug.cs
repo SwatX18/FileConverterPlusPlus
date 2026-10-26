@@ -32,20 +32,33 @@ namespace FileConverter.Diagnostics
                 for (int index = 0; index < diagnosticsDirectories.Length; index++)
                 {
                     string directory = diagnosticsDirectories[index];
-                    DateTime creationTime = Directory.GetCreationTime(directory);
-                    if (creationTime < expirationDate)
+                    try
                     {
-                        Directory.Delete(directory, true);
+                        DateTime creationTime = Directory.GetCreationTime(directory);
+                        if (creationTime < expirationDate)
+                        {
+                            Directory.Delete(directory, true);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Another process can be cleaning the same folder: keep cleaning the others.
                     }
                 }
             }
             catch (Exception)
             {
-                // Another process can be cleaning the same folders: diagnostics must never prevent the application from starting.
+                // Diagnostics must never prevent the application from starting.
             }
 
             // The process id keeps the folder unique when several processes start in the same second.
-            string diagnosticsFolderName = $"Diagnostics-{DateTime.Now.Hour}h{DateTime.Now.Minute}m{DateTime.Now.Second}s-p{Process.GetCurrentProcess().Id}";
+            int processId;
+            using (Process currentProcess = Process.GetCurrentProcess())
+            {
+                processId = currentProcess.Id;
+            }
+
+            string diagnosticsFolderName = $"Diagnostics-{DateTime.Now.Hour}h{DateTime.Now.Minute}m{DateTime.Now.Second}s-p{processId}";
             
             Debug.diagnosticsFolderPath = Path.Combine(path, diagnosticsFolderName);
             Debug.diagnosticsFolderPath = PathHelpers.GenerateUniquePath(Debug.diagnosticsFolderPath);
