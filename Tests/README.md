@@ -16,6 +16,7 @@ Visual Studio's Test Explorer runs them too (the project is in `FileConverter.sl
 | `ImageRoutingTests` | Job type per input/output, libvips or ImageMagick per format and setting, rotations, output sizes (ImageMagick's computation) |
 | `HardwareEncoderDetectorTests` | Detection with a fake process runner (success, failure, timeout, exception), cache by fingerprint, Re-detect, vendor priority, encoder summary |
 | `SchedulingAndSettingsTests` | Limits per lane, thread budgets, settings migrations (v5 hardware acceleration, v6 simultaneous conversions), defaults |
+| `EstimatedRemainingDurationTests` | The "estimated remaining time" converter never throws or shows a negative time (progress 0 / NaN / infinity / past 1 / tiny, unset binding values) |
 
 The tests don't touch the registry, the user's settings or the GPU. The libvips routing cases load the libvips DLLs
 copied next to `FileConverterPlusPlus.exe` (xUnit shadow copying is disabled for that, `xunit.runner.json`). Logs go to a
@@ -39,3 +40,17 @@ cases expect the CPU path on a machine without a hardware encoder.
 Known issue (upstream, not caused by this fork): the `To Ogv` output's Theora video does not decode cleanly with
 ffmpeg 8 ("error in unpack_block_qpis", most frames lost), a long-standing problem of ffmpeg's libtheora encoder on
 64-bit builds (FFmpeg trac #8040, #8775). The case is reported as `known`.
+
+## Manual check: long conversions (upstream #700, #749, #800, #803)
+
+ffmpeg runs with `-progress pipe:1` and its stdout redirected. If the application does not read stdout, ffmpeg blocks
+on the full pipe after roughly 40 s of encoding on the test machine (it depends on the pipe size; the first report said about 10 s): the job freezes (progress stuck, ffmpeg at 0 % CPU, output
+file no longer growing), around the time the "estimated remaining time" appears. Short conversions finish first, which
+is why `To Wav` (fast) seemed unaffected. The integration corpus is too short to reach it, so check by hand:
+
+```powershell
+# 4 h of low-resolution video + noise (~300 MB), then convert it with "To Mp3" (about 45 s with ffmpeg 8 on 16 threads)
+ffmpeg -f lavfi -i testsrc=size=160x120:rate=2:duration=14400 -f lavfi -i anoisesrc=d=14400:c=pink:r=44100 -c:v libx264 -preset ultrafast -c:a aac -b:a 128k -shortest long.mp4
+```
+
+The job must end with "Job done"; with stdout not drained it stays at 99 % forever.

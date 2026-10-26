@@ -12,7 +12,9 @@ namespace FileConverter.ValueConverters
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values.Length != 3)
+            // Binding values can be DependencyProperty.UnsetValue (no data context yet): an exception thrown from a
+            // converter is not caught by WPF and ends up on the dispatcher.
+            if (values == null || values.Length != 3 || !(values[0] is ConversionState) || !(values[1] is DateTime) || !(values[2] is float))
             {
                 return string.Empty;
             }
@@ -20,8 +22,9 @@ namespace FileConverter.ValueConverters
             ConversionState state = (ConversionState)values[0];
             DateTime startTime = (DateTime)values[1];
             float progress = (float)values[2];
-            if (progress <= 0f)
+            if (!(progress > 0f) || float.IsInfinity(progress))
             {
+                // Also catches NaN (every comparison is false).
                 return string.Empty;
             }
 
@@ -39,7 +42,14 @@ namespace FileConverter.ValueConverters
                 return string.Empty;
             }
 
-            double remainingTimeInSeconds = (1 - progress) * elapsedTime.TotalSeconds / progress;
+            // Progress is a ratio of durations reported by ffmpeg and can go past 1 (negative remaining time); a tiny
+            // progress would overflow TimeSpan.
+            double remainingTimeInSeconds = Math.Max(0.0, (1 - (double)progress) * elapsedTime.TotalSeconds / progress);
+            if (remainingTimeInSeconds >= TimeSpan.MaxValue.TotalSeconds)
+            {
+                return string.Empty;
+            }
+
             TimeSpan remainingTime = TimeSpan.FromSeconds(Math.Floor(remainingTimeInSeconds));
             return "~" + remainingTime.ToString("g");
         }
