@@ -471,6 +471,19 @@
     <Compile Include="RadialMenu\RadialPager.cs" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Radial menu: T3 -->
+    <None Include="App.config" />
+    <Compile Include="RadialMenu\NativeMethods.cs" />
+    <Compile Include="Views\RadialMenuWindow.xaml.cs">
+      <DependentUpon>RadialMenuWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="Views\RadialMenuWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
     <!-- Radial menu: T5 -->
     <Compile Include="ValueConverters\RadialContextMenuModeToString.cs" />
   </ItemGroup>

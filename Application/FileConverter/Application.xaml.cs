@@ -49,11 +49,35 @@ namespace FileConverter
         private bool verbose;
         private bool showSettings;
         private bool showHelp;
+        private bool radialMode;
+        private List<string> radialFilePaths;
+        private RadialMenuWindow radialWindow;
 
         [DllImport("kernel32.dll")]
         static extern bool AttachConsole(uint dwProcessId);
 
         const uint ATTACH_PARENT_PROCESS = 0x0ffffffff;
+
+        static Application()
+        {
+            // The radial menu is positioned in physical pixels, it needs to be per monitor DPI aware before any window is created.
+            foreach (string argument in Environment.GetCommandLineArgs())
+            {
+                if (string.Equals(argument, "--radial", StringComparison.OrdinalIgnoreCase) || string.Equals(argument, "--agent", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        RadialMenu.NativeMethods.SetProcessDpiAwarenessContext(RadialMenu.NativeMethods.DpiAwarenessContextPerMonitorAwareV2);
+                    }
+                    catch (Exception)
+                    {
+                        // Older Windows versions: stay with the default DPI awareness.
+                    }
+
+                    break;
+                }
+            }
+        }
 
         public event EventHandler<ApplicationTerminateArgs> OnApplicationTerminate;
 
@@ -102,14 +126,12 @@ namespace FileConverter
                 return;
             }
 
-            if (this.needToRunConversionThread)
+            if (this.radialMode)
             {
-                navigationService.Show(Pages.Main);
-
-                IConversionService conversionService = Ioc.Default.GetRequiredService<IConversionService>();
-                conversionService.ConversionJobsTerminated += this.ConversionService_ConversionJobsTerminated;
-                conversionService.ConvertFilesAsync();
+                this.ShowRadialMenu();
             }
+
+            this.StartConversions();
 
             if (this.showSettings)
             {
@@ -120,6 +142,58 @@ namespace FileConverter
             {
                 navigationService.Show(Pages.Diagnostics);
             }
+        }
+
+        private void StartConversions()
+        {
+            if (!this.needToRunConversionThread)
+            {
+                return;
+            }
+
+            this.needToRunConversionThread = false;
+
+            INavigationService navigationService = Ioc.Default.GetRequiredService<INavigationService>();
+            navigationService.Show(Pages.Main);
+
+            IConversionService conversionService = Ioc.Default.GetRequiredService<IConversionService>();
+            conversionService.ConversionJobsTerminated += this.ConversionService_ConversionJobsTerminated;
+            conversionService.ConvertFilesAsync();
+        }
+
+        private void ShowRadialMenu()
+        {
+            ISettingsService settingsService = Ioc.Default.GetRequiredService<ISettingsService>();
+            if (settingsService.Settings == null)
+            {
+                Debug.LogError(errorCode: 0x04, "Can't load FileConverter++ settings. The application will now shutdown.");
+                Application.AskForShutdown();
+                return;
+            }
+
+            // The upgrade check and the hardware encoder detection are done on pick (see RunConversions) to keep the first frame fast.
+            this.radialWindow = new RadialMenuWindow();
+            this.radialWindow.PresetChosen += this.RadialWindow_PresetChosen;
+            this.radialWindow.ContentRendered += this.RadialWindow_ContentRendered;
+
+            RadialMenu.NativeMethods.GetCursorPos(out RadialMenu.NativeMethods.POINT point);
+            this.radialWindow.ShowMenu(this.radialFilePaths, settingsService.Settings.ConversionPresets, new System.Drawing.Point(point.X, point.Y), RadialMenuInputMode.Click);
+        }
+
+        private void RadialWindow_ContentRendered(object sender, EventArgs e)
+        {
+            this.radialWindow.ContentRendered -= this.RadialWindow_ContentRendered;
+            double elapsed = (DateTime.Now - Process.GetCurrentProcess().StartTime).TotalMilliseconds;
+            Debug.Log($"Radial menu shown in {(int)elapsed} ms (from process start).");
+        }
+
+        private void RadialWindow_PresetChosen(object sender, RadialPresetChosenEventArgs e)
+        {
+            this.RunConversions(new List<string>(e.FilePaths), e.Preset.FullName);
+
+            // Show the main window before closing the radial menu, the application exits when the last window is closed.
+            this.StartConversions();
+            this.radialWindow.Dismiss();
         }
 
         protected override void OnExit(ExitEventArgs e)
@@ -369,6 +443,10 @@ namespace FileConverter
                             index++;
                             break;
 
+                        case "radial":
+                            this.radialMode = true;
+                            break;
+
                         case "verbose":
                             {
                                 this.verbose = true;
@@ -385,6 +463,12 @@ namespace FileConverter
                 {
                     filePaths.Add(argument);
                 }
+            }
+
+            if (this.radialMode)
+            {
+                this.radialFilePaths = filePaths;
+                return;
             }
 
             this.RunConversions(filePaths, conversionPresetName);
