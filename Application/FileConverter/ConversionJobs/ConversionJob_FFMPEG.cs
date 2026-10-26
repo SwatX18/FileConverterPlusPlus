@@ -835,9 +835,6 @@ namespace FileConverter.ConversionJobs
         }
 
         /// <summary>
-        /// Parses ffmpeg's -progress key=value lines (stdout).
-        /// </summary>
-        /// <summary>
         /// Limits the threads of software video encoders to the job's <see cref="ConversionJob.ThreadBudget"/> when
         /// several run at the same time (x264 / x265 / VP9 each start a thread per core otherwise).
         /// </summary>
@@ -854,6 +851,9 @@ namespace FileConverter.ConversionJobs
             return attempt.Arguments.Substring(0, outputIndex) + $"-threads {this.ThreadBudget} " + attempt.Arguments.Substring(outputIndex);
         }
 
+        /// <summary>
+        /// Parses ffmpeg's -progress key=value lines (stdout).
+        /// </summary>
         private void ParseFFMPEGProgress(string line)
         {
             const string OutTimeKey = "out_time_us=";
