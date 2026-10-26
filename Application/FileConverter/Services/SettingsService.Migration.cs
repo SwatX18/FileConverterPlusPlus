@@ -34,6 +34,12 @@ namespace FileConverter.Services
                 }
             }
 
+            if (settingsVersion <= 6)
+            {
+                // The radial menu settings (version 7) are all off by default: nothing to migrate. The missing elements
+                // keep their default values and the presets are untouched.
+            }
+
             // Migrate conversion settings.
             if (settings.ConversionPresets != null)
             {

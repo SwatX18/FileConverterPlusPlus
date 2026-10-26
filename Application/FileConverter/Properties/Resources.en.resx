@@ -574,4 +574,55 @@ use maj for uppercase version</value>
   <data name="ErrorCantLoadSettings" xml:space="preserve">
     <value>Could not load FileConverter++ user settings. Would you like to use default settings ?</value>
   </data>
+  <data name="RadialMenu" xml:space="preserve">
+    <value>Radial menu</value>
+  </data>
+  <data name="RadialMenuEnabled" xml:space="preserve">
+    <value>Enable the radial menu</value>
+  </data>
+  <data name="RadialMenuContextMenu" xml:space="preserve">
+    <value>Explorer context menu</value>
+  </data>
+  <data name="RadialContextMenuMode_None" xml:space="preserve">
+    <value>No radial menu entry</value>
+  </data>
+  <data name="RadialContextMenuMode_ExtraEntry" xml:space="preserve">
+    <value>Add a radial menu entry</value>
+  </data>
+  <data name="RadialContextMenuMode_ReplaceSubmenu" xml:space="preserve">
+    <value>Replace the preset submenu with the radial menu</value>
+  </data>
+  <data name="RadialMenuHotkeyEnabled" xml:space="preserve">
+    <value>Open with a global hotkey (selection of the Explorer window)</value>
+  </data>
+  <data name="RadialMenuHotkey" xml:space="preserve">
+    <value>Hotkey</value>
+  </data>
+  <data name="RadialMenuHotkeyInvalid" xml:space="preserve">
+    <value>Invalid hotkey. Use Ctrl, Alt or Win with a key (for example Ctrl+Alt+C).</value>
+  </data>
+  <data name="RadialMenuHotkeyRegistrationFailed" xml:space="preserve">
+    <value>The hotkey {0} could not be registered: another application probably uses it. Choose another hotkey in the settings.</value>
+  </data>
+  <data name="RadialMenuCtrlDragEnabled" xml:space="preserve">
+    <value>Open when dragging files from Explorer with Ctrl held</value>
+  </data>
+  <data name="RadialMenuCtrlDragTooltip" xml:space="preserve">
+    <value>Hold Ctrl while dragging files from an Explorer window, then drop them on a preset of the radial menu. While enabled, Ctrl+drag copies between Explorer windows are captured by the radial menu.</value>
+  </data>
+  <data name="RadialMenuNoCompatiblePreset" xml:space="preserve">
+    <value>No compatible preset</value>
+  </data>
+  <data name="RadialMenuTrayTooltip" xml:space="preserve">
+    <value>FileConverter++ radial menu</value>
+  </data>
+  <data name="RadialMenuTraySettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="RadialMenuTrayExit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="RadialMenuCredit" xml:space="preserve">
+    <value>Radial menu inspired by Filee (MIT)</value>
+  </data>
 </root>

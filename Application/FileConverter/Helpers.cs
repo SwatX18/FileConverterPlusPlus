@@ -363,6 +363,13 @@ namespace FileConverter
             AMF
         }
 
+        public enum RadialContextMenuMode
+        {
+            None = 0,
+            ExtraEntry = 1,
+            ReplaceSubmenu = 2
+        }
+
         public enum ImageEngine
         {
             /// <summary>

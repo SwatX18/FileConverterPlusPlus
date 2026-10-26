@@ -19,6 +19,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Application\FileConverter\FileConverter.csproj" />
     <Reference Include="System.Management" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
 
   <ItemGroup>
