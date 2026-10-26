@@ -1,5 +1,14 @@
 # Change Log
 
+## Unreleased
+
+- New: Optional radial "donut" menu, off by default (Settings > Radial menu). It opens at the cursor with the presets compatible with all the selected files, 8 per page (Tab, Shift+Tab or the mouse wheel for the others), and converts with the same pipeline as the context menu. Four triggers: an extra "FileConverter++ (radial menu)…" context menu entry, or the FileConverter++ entry replaced by the radial menu (exclusive; if both are set in the file, the replacement wins); a global hotkey on the Explorer selection (Ctrl+Alt+C by default, Windows 11 tabs supported); Ctrl+drag of files from Explorer, dropped on a preset. English and French.
+- New: Tray agent for the hotkey and Ctrl+drag triggers (`--agent`), single instance per user, started with Windows (HKCU Run value) only while one of them is enabled, started, reloaded or stopped as soon as the settings are saved. Ctrl+drag uses a low-level mouse hook and invisible drop targets, the drop is refused so Explorer copies nothing. Trade-off: while Ctrl+drag is enabled, a Ctrl+drag copy between Explorer windows opens the radial menu instead.
+- New: The uninstaller stops the agent and removes its Run value (`--stop-agent`).
+- New: "Radial menu inspired by Filee (MIT)" credit in Settings > About and the README (clean-room implementation, no code copied).
+- Tech: Settings version 7 (six `RadialMenu*` elements, all off by default, no migration needed). The shell extension reads the radial menu settings from `Settings.user.xml`. `--radial` mode for the context menu triggers; per monitor DPI awareness (v2) in the radial and agent modes only.
+- Tech: Unit tests for preset filtering, paging, slice geometry, work area clamping, hotkey parsing, settings v7, extension menu modes, the agent controller and the conversion command line.
+
 ## FileConverter++ 2.3.0 (2026-10-19, fork of File Converter 2.2)
 
 - New: Renamed FileConverter++ (`FileConverterPlusPlus.exe`, `C:\Program Files\FileConverter++`), published by SwatX18. It replaces File Converter when installed and keeps its settings; updates are checked on github.com/SwatX18/FileConverterPlusPlus.

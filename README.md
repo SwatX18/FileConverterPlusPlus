@@ -25,6 +25,7 @@
 | PDF conversions | Need the Visual C++ Redistributable installed by another program | Everything included in the installer |
 | Security | Magick.NET 14.10.2 (144 known advisories), Ghostscript 10.02.1 (CVE-2024-29510) | Magick.NET 14.17.2, Ghostscript 10.08.0 |
 | Settings | Application tab | New **Performance** tab: detected GPUs, image engine, limits, diagnostics |
+| Right-click menu | Preset submenu | Same, plus an optional **radial menu** (extra entry, hotkey or Ctrl+drag), off by default |
 | Logs | Conversion log | Plus the path each file took (remux, nvenc, cpu-fallback, vips...) and its duration |
 | Video codecs for Mp4 / Mkv presets | H.264 | **H.264, HEVC or AV1** (AV1 when your GPU can encode it) |
 | Tests | — | 168 unit tests, 40 integration tests, a benchmark suite |
@@ -89,6 +90,23 @@ The original converts 2 files at a time. FileConverter++ runs **one conversion p
 ![Settings → Performance](docs/images/settings-performance.png)
 
 A new tab groups the new settings: hardware acceleration mode and the detected encoders (with a Re-detect button), stream copy, image engine and the simultaneous conversion limits. The diagnostics logs now record, for every file, the path it took (`remux`, `nvenc`, `cpu-fallback`, `vips`, `imagemagick-fallback`...) and how long it took, and a summary per batch. Details: [docs/SETTINGS.md](docs/SETTINGS.md).
+
+### Radial menu (optional, off by default)
+
+A round "donut" menu that opens at the mouse cursor and shows only the presets that can convert **all** the selected files, 8 per page (Tab, Shift+Tab or the mouse wheel for the other pages). Click a preset to convert the files, exactly as with the right-click submenu; Esc or a click outside the ring closes it.
+
+It is **off by default**. Turn it on in **Settings → Radial menu** ("Enable the radial menu"), then pick how it opens:
+
+- **Extra context-menu entry**: "FileConverter++ (radial menu)…" next to the usual FileConverter++ submenu.
+- **Replace the submenu**: the FileConverter++ entry opens the radial menu instead of the preset submenu.
+- **Global hotkey** (Ctrl+Alt+C by default, changeable): opens it for the files selected in the active Explorer window (Windows 11 tabs included).
+- **Ctrl+drag**: hold Ctrl while dragging files out of an Explorer window, then drop them on a preset.
+
+The two context-menu options are exclusive and live where the FileConverter++ entry is (Windows 11: **Show more options**). The hotkey and Ctrl+drag need a small tray agent: it runs, and starts with Windows, only while one of them is enabled, and stops as soon as they are turned off.
+
+**Ctrl+drag trade-off**: while Ctrl+drag is enabled, a Ctrl+drag that starts in an Explorer window opens the radial menu instead of copying, so you can't Ctrl+drag to copy files between Explorer windows (dropping anywhere but on a preset does nothing). Copy with Ctrl+C / Ctrl+V or a right-button drag → "Copy here" instead, or leave Ctrl+drag off.
+
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#8-radial-menu-fileconverter), [docs/SETTINGS.md](docs/SETTINGS.md#settings--radial-menu-settings-version-7).
 
 ### Fixes
 
@@ -216,6 +234,8 @@ Thanks to Bevan Arps for his work on Markdown.XAML. [GitHub link](https://github
 
 **WpfAnimatedGif** for animated gif rendering in the wpf application.
 Thanks to Thomas Levesque for his work on WpfAnimatedGif. [GitHub link](https://github.com/XamlAnimatedGif/WpfAnimatedGif)
+
+Radial menu inspired by **Filee** (MIT, [github.com/KnifeLemon/Filee](https://github.com/KnifeLemon/Filee)) — clean-room implementation, no code copied.
 
 ## License
 
