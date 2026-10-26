@@ -26,22 +26,38 @@ namespace FileConverter.Diagnostics
 
             // Delete old diagnostics folder (1 day).
             DateTime expirationDate = DateTime.Now.Subtract(new TimeSpan(1, 0, 0, 0));
-            string[] diagnosticsDirectories = Directory.GetDirectories(path, "Diagnostics-*");
-            for (int index = 0; index < diagnosticsDirectories.Length; index++)
+            try
             {
-                string directory = diagnosticsDirectories[index];
-                DateTime creationTime = Directory.GetCreationTime(directory);
-                if (creationTime < expirationDate)
+                string[] diagnosticsDirectories = Directory.GetDirectories(path, "Diagnostics-*");
+                for (int index = 0; index < diagnosticsDirectories.Length; index++)
                 {
-                    Directory.Delete(directory, true);
+                    string directory = diagnosticsDirectories[index];
+                    DateTime creationTime = Directory.GetCreationTime(directory);
+                    if (creationTime < expirationDate)
+                    {
+                        Directory.Delete(directory, true);
+                    }
                 }
             }
+            catch (Exception)
+            {
+                // Another process can be cleaning the same folders: diagnostics must never prevent the application from starting.
+            }
 
-            string diagnosticsFolderName = $"Diagnostics-{DateTime.Now.Hour}h{DateTime.Now.Minute}m{DateTime.Now.Second}s";
+            // The process id keeps the folder unique when several processes start in the same second.
+            string diagnosticsFolderName = $"Diagnostics-{DateTime.Now.Hour}h{DateTime.Now.Minute}m{DateTime.Now.Second}s-p{Process.GetCurrentProcess().Id}";
             
             Debug.diagnosticsFolderPath = Path.Combine(path, diagnosticsFolderName);
             Debug.diagnosticsFolderPath = PathHelpers.GenerateUniquePath(Debug.diagnosticsFolderPath);
-            Directory.CreateDirectory(Debug.diagnosticsFolderPath);
+            try
+            {
+                Directory.CreateDirectory(Debug.diagnosticsFolderPath);
+            }
+            catch (Exception)
+            {
+                // Logs are kept in memory only.
+                Debug.diagnosticsFolderPath = null;
+            }
 
             Debug.Log($"Diagnostics stored at path '{Debug.diagnosticsFolderPath}'");
         }
