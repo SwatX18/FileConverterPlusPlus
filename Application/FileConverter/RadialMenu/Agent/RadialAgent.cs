@@ -396,7 +396,7 @@ namespace FileConverter.RadialMenu.Agent
                 return;
             }
 
-            if ((AgentNativeMethods.GetAsyncKeyState(AgentNativeMethods.VK_LBUTTON) & 0x8000) != 0)
+            if ((AgentNativeMethods.GetAsyncKeyState(AgentNativeMethods.GetPrimaryButtonVirtualKey()) & 0x8000) != 0)
             {
                 this.buttonUpSince = 0;
                 return;

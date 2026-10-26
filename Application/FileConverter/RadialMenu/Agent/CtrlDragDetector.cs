@@ -57,6 +57,7 @@ namespace FileConverter.RadialMenu.Agent
             if (newSession.Hook == IntPtr.Zero)
             {
                 newThread.Join();
+                newSession.Installed.Dispose();
                 return;
             }
 
@@ -75,8 +76,12 @@ namespace FileConverter.RadialMenu.Agent
 
             this.thread = null;
             AgentNativeMethods.PostThreadMessage(this.session.ThreadId, AgentNativeMethods.WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+            HookSession stoppedSession = this.session;
             this.session = null;
-            stoppedThread.Join(1000);
+            if (stoppedThread.Join(1000))
+            {
+                stoppedSession.Installed.Dispose();
+            }
         }
 
         public void Dispose()

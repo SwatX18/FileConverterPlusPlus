@@ -3,6 +3,7 @@
 ## Unreleased
 
 - New: Optional radial "donut" menu, off by default (Settings > Radial menu). It opens at the cursor with the presets compatible with all the selected files, 8 per page (Tab, Shift+Tab or the mouse wheel for the others), and converts with the same pipeline as the context menu. Four triggers: an extra "FileConverter++ (radial menu)…" context menu entry, or the FileConverter++ entry replaced by the radial menu (exclusive; if both are set in the file, the replacement wins); a global hotkey on the Explorer selection (Ctrl+Alt+C by default, Windows 11 tabs supported); Ctrl+drag of files from Explorer, dropped on a preset. English and French.
+- Note: after an upgrade, the hotkey and Ctrl+drag agent restarts at the next logon or the next Settings save (the installer never starts it).
 - New: Tray agent for the hotkey and Ctrl+drag triggers (`--agent`), single instance per user, started with Windows (HKCU Run value) only while one of them is enabled, started, reloaded or stopped as soon as the settings are saved. Ctrl+drag uses a low-level mouse hook and invisible drop targets, the drop is refused so Explorer copies nothing. Trade-off: while Ctrl+drag is enabled, a Ctrl+drag copy between Explorer windows opens the radial menu instead.
 - New: The uninstaller stops the agent and removes its Run value (`--stop-agent`).
 - New: "Radial menu inspired by Filee (MIT)" credit in Settings > About and the README (clean-room implementation, no code copied).

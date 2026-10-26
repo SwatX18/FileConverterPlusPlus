@@ -15,6 +15,8 @@ namespace FileConverter.RadialMenu.Agent
         public const int WM_HOTKEY = 0x0312;
         public const int WM_QUIT = 0x0012;
         public const int VK_LBUTTON = 0x01;
+        public const int VK_RBUTTON = 0x02;
+        public const int SM_SWAPBUTTON = 23;
         public const int VK_CONTROL = 0x11;
         public const int SM_CXDRAG = 68;
         public const int SM_CYDRAG = 69;
@@ -110,6 +112,12 @@ namespace FileConverter.RadialMenu.Agent
 
         [DllImport("kernel32.dll")]
         public static extern bool SetProcessWorkingSetSize(IntPtr process, IntPtr minimum, IntPtr maximum);
+
+        /// <summary>GetAsyncKeyState reads physical buttons: with swapped buttons the logical primary button is the physical right one.</summary>
+        public static int GetPrimaryButtonVirtualKey()
+        {
+            return GetSystemMetrics(SM_SWAPBUTTON) != 0 ? VK_RBUTTON : VK_LBUTTON;
+        }
 
         public static string GetWindowClassName(IntPtr window)
         {
