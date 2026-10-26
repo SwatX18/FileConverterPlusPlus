@@ -487,6 +487,16 @@
     <!-- Radial menu: T5 -->
     <Compile Include="ValueConverters\RadialContextMenuModeToString.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Radial menu: T4 -->
+    <Compile Include="RadialMenu\Agent\AgentNativeMethods.cs" />
+    <Compile Include="RadialMenu\Agent\ConversionProcessLauncher.cs" />
+    <Compile Include="RadialMenu\Agent\CtrlDragDetector.cs" />
+    <Compile Include="RadialMenu\Agent\DropShieldForm.cs" />
+    <Compile Include="RadialMenu\Agent\ExplorerSelection.cs" />
+    <Compile Include="RadialMenu\Agent\HotkeyListener.cs" />
+    <Compile Include="RadialMenu\Agent\RadialAgent.cs" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /Y "$(ProjectDir)..\..\Middleware\ffmpeg\ffmpeg.exe" "$(TargetDir)ffmpeg.exe"

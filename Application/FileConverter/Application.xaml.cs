@@ -52,6 +52,8 @@ namespace FileConverter
         private bool radialMode;
         private List<string> radialFilePaths;
         private RadialMenuWindow radialWindow;
+        private bool agentMode;
+        private RadialMenu.Agent.RadialAgent radialAgent;
 
         [DllImport("kernel32.dll")]
         static extern bool AttachConsole(uint dwProcessId);
@@ -126,6 +128,12 @@ namespace FileConverter
                 return;
             }
 
+            if (this.agentMode)
+            {
+                this.StartRadialAgent();
+                return;
+            }
+
             if (this.radialMode)
             {
                 this.ShowRadialMenu();
@@ -159,6 +167,18 @@ namespace FileConverter
             IConversionService conversionService = Ioc.Default.GetRequiredService<IConversionService>();
             conversionService.ConversionJobsTerminated += this.ConversionService_ConversionJobsTerminated;
             conversionService.ConvertFilesAsync();
+        }
+
+        private void StartRadialAgent()
+        {
+            // The agent lives until it is asked to exit, it has no main window.
+            this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            this.radialAgent = new RadialMenu.Agent.RadialAgent();
+            if (!this.radialAgent.Start())
+            {
+                Application.AskForShutdown();
+            }
         }
 
         private void ShowRadialMenu()
@@ -201,6 +221,8 @@ namespace FileConverter
             base.OnExit(e);
 
             Debug.Log("Exit application.");
+
+            this.radialAgent?.Dispose();
 
             IUpgradeService upgradeService = Ioc.Default.GetRequiredService<IUpgradeService>();
 
@@ -447,6 +469,23 @@ namespace FileConverter
                             this.radialMode = true;
                             break;
 
+                        case "agent":
+                            this.agentMode = true;
+                            break;
+
+                        case "stop-agent":
+                            {
+                                string exePath = Process.GetCurrentProcess().MainModule.FileName;
+                                if (!RadialMenu.RadialAgentController.StopAgent(TimeSpan.FromSeconds(2)))
+                                {
+                                    Debug.Log("The radial menu agent didn't exit in time.");
+                                }
+
+                                RadialMenu.RadialAgentController.SetAutostart(false, exePath);
+                                Application.AskForShutdown();
+                                return;
+                            }
+
                         case "verbose":
                             {
                                 this.verbose = true;
@@ -463,6 +502,11 @@ namespace FileConverter
                 {
                     filePaths.Add(argument);
                 }
+            }
+
+            if (this.agentMode)
+            {
+                return;
             }
 
             if (this.radialMode)
