@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Application\FileConverter\FileConverter.csproj" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Management" />
   </ItemGroup>
 
