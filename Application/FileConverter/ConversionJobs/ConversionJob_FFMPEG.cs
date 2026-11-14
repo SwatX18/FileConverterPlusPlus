@@ -25,6 +25,9 @@ namespace FileConverter.ConversionJobs
 
         // Duration written so far by the running attempt (ffmpeg -progress "out_time_us"), null until reported.
         private TimeSpan? attemptOutputDuration;
+        // Written by the stdout handler (-progress), while the stderr handler writes the other fields of the attempt.
+        // Each stream's handler is serialized by Process, and every read happens on the job thread after the
+        // parameterless WaitForExit(), which joins both readers: no lock needed.
 
         private ProcessStartInfo ffmpegProcessStartInfo;
 
@@ -717,6 +720,12 @@ namespace FileConverter.ConversionJobs
 
                 if (error == null)
                 {
+                    if (this.CancelIsRequested)
+                    {
+                        // A killed ffmpeg exits without error: don't let the next pass start.
+                        return false;
+                    }
+
                     if (attemptIndex > 0)
                     {
                         Diagnostics.Debug.Log($"Conversion succeeded with fallback encoding path '{attempt.Path}'.");
@@ -795,24 +804,18 @@ namespace FileConverter.ConversionJobs
                         exeProcess.OutputDataReceived += (sender, args) => this.ParseFFMPEGProgress(args.Data);
                         exeProcess.BeginOutputReadLine();
 
-                        using (StreamReader reader = exeProcess.StandardError)
+                        // stderr is read asynchronously too: a blocking ReadLine would delay the cancellation until
+                        // ffmpeg writes something.
+                        exeProcess.ErrorDataReceived += (sender, args) =>
                         {
-                            while (!reader.EndOfStream)
+                            if (args.Data != null)
                             {
-                                if (this.CancelIsRequested && !exeProcess.HasExited)
-                                {
-                                    exeProcess.Kill();
-                                }
-
-                                string result = reader.ReadLine();
-
-                                this.ParseFFMPEGOutput(result);
-
-                                Diagnostics.Debug.Log($"ffmpeg output: {result}");
+                                this.OnFFMPEGErrorLine(args.Data);
                             }
-                        }
+                        };
+                        exeProcess.BeginErrorReadLine();
 
-                        exeProcess.WaitForExit();
+                        ProcessCancellation.WaitForExit(exeProcess, () => this.CancelIsRequested);
 
                         if (exeProcess.ExitCode != 0 && !this.CancelIsRequested)
                         {
@@ -862,6 +865,21 @@ namespace FileConverter.ConversionJobs
             {
                 this.attemptOutputDuration = TimeSpan.FromTicks(microseconds * 10);
             }
+        }
+
+        private void OnFFMPEGErrorLine(string line)
+        {
+            // Runs on a thread pool thread: an exception here would crash the application.
+            try
+            {
+                this.ParseFFMPEGOutput(line);
+            }
+            catch (Exception exception)
+            {
+                Diagnostics.Debug.Log($"Can't parse ffmpeg output: {exception.Message}");
+            }
+
+            Diagnostics.Debug.Log($"ffmpeg output: {line}");
         }
 
         private void ParseFFMPEGOutput(string input)
