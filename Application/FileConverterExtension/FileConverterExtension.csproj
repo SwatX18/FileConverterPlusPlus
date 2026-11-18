@@ -59,8 +59,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FileConverterExtension.cs" />
+    <Compile Include="ConversionCommandLine.cs" />
     <Compile Include="ConversionPresetReference.cs" />
+    <Compile Include="ExtensionLog.cs" />
     <Compile Include="PathHelpers.cs" />
+    <Compile Include="ShellSelection.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
     </Compile>

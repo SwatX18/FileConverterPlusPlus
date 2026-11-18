@@ -2,6 +2,7 @@
 
 namespace FileConverterExtension
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
@@ -18,12 +19,18 @@ namespace FileConverterExtension
     /// FileConverter++ context menu extension class.
     /// </summary>
     [ComVisible(true), Guid("AF9B72B5-F4E4-44B0-A3D9-B55B748EFE90")]
+    // AllFiles ("*") is what Explorer uses. File managers that show search results (Unreal Commander, Total Commander...) hand the shell
+    // multi-level relative PIDLs ("sub\file.avi"): the shell then finds no handler under "*" and never loads the extension, but it does
+    // consult AllFileSystemObjects. Registering under both loads the extension once (verified: one menu entry, no duplicate).
     [COMServerAssociation(AssociationType.AllFiles)]
-    public class FileConverterExtension : SharpContextMenu
+    [COMServerAssociation(AssociationType.AllFilesAndFolders)]
+    public class FileConverterExtension : SharpContextMenu, SharpShell.Interop.IShellExtInit
     {
-        private const int MaximumProcessArgumentsLength = 8000; // https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/command-line-string-limitation
-
         private PresetReference[] presetReferences = null;
+
+        // The selected file system paths, read once in Initialize. Replaces SharpShell's SelectedItemPaths, which comes from a single
+        // CF_HDROP query with a 260 character buffer and makes the extension fail to load when the format is not offered.
+        private List<string> selectedPaths = new List<string>();
         private List<MenuEntry> menuEntries = new List<MenuEntry>();
 
         private HashSet<string> extensionCache = new HashSet<string>();
@@ -71,11 +78,27 @@ namespace FileConverterExtension
             }
         }
 
+        /// <summary>
+        /// Re-implementation of IShellExtInit.Initialize (it takes over from SharpShell's, which is no longer called).
+        /// Never throws: an exception here would make Explorer drop the extension, i.e. no menu at all.
+        /// </summary>
+        void SharpShell.Interop.IShellExtInit.Initialize(IntPtr pidlFolder, IntPtr pDataObj, IntPtr hKeyProgID)
+        {
+            this.selectedPaths = ShellSelection.Read(pDataObj);
+            ExtensionLog.Info($"Initialize: {this.selectedPaths.Count} selected path(s): {string.Join(" | ", this.selectedPaths)}");
+        }
+
         protected override bool CanShowMenu()
         {
             this.RefreshExtensionCacheFromSelectedItems();
 
             PresetReference[] presets = this.PresetReferences;
+            if (presets == null)
+            {
+                ExtensionLog.Warn("Menu hidden: the preset list could not be loaded (Settings.user.xml / Settings.default.xml).");
+                return false;
+            }
+
             foreach (string extension in this.extensionCache)
             {
                 foreach (PresetReference presetReference in presets)
@@ -87,6 +110,7 @@ namespace FileConverterExtension
                 }
             }
 
+            ExtensionLog.Info($"Menu hidden: no preset accepts the selected extension(s) [{string.Join(", ", this.extensionCache)}] ({this.selectedPaths.Count} path(s)).");
             return false;
         }
 
@@ -190,11 +214,12 @@ namespace FileConverterExtension
         {
             // Retrieve selected files extensions.
             this.extensionCache.Clear();
-            foreach (string filePath in this.SelectedItemPaths)
+            foreach (string filePath in this.selectedPaths)
             {
                 string extension = Path.GetExtension(filePath);
                 if (string.IsNullOrEmpty(extension))
                 {
+                    ExtensionLog.Info($"Selected path without extension ignored: {filePath}");
                     continue;
                 }
 
@@ -209,7 +234,7 @@ namespace FileConverterExtension
             this.RefreshExtensionCacheFromSelectedItems();
 
             // Activate compatible menu entries.
-            PresetReference[] presets = this.presetReferences;
+            PresetReference[] presets = this.PresetReferences ?? new PresetReference[0];
             this.menuEntries.Clear();
             foreach (string extension in this.extensionCache)
             {
@@ -311,80 +336,49 @@ namespace FileConverterExtension
                 return;
             }
 
-            void BuildConversionPresetArgument(StringBuilder sb)
+            if (this.selectedPaths.Count == 0)
             {
-                sb.Append("--conversion-preset ");
-                sb.Append(" \"");
-                sb.Append(presetName);
-                sb.Append("\"");
+                ExtensionLog.Warn($"Conversion with preset '{presetName}' requested but no file is selected.");
+                return;
             }
 
-            // Build arguments string.
-            StringBuilder stringBuilder = new StringBuilder();
-            BuildConversionPresetArgument(stringBuilder);
-            
-            string fileListPath = null;
-            foreach (var filePath in this.SelectedItemPaths)
+            string[] filePaths = this.selectedPaths.ToArray();
+            string listPath = null;
+            try
             {
-                stringBuilder.Append(" \"");
-                stringBuilder.Append(filePath);
-                stringBuilder.Append("\"");
+                // Windows command-line quoting; a private, uniquely named list file when the selection does not fit on the command line.
+                ConversionCommandLine.Invocation invocation = ConversionCommandLine.Build(PathHelpers.FileConverterPath, presetName, filePaths, Path.GetTempPath());
+                listPath = invocation.InputListPath;
+                ExtensionLog.Info($"Starting '{PathHelpers.FileConverterPath}' for {filePaths.Length} file(s), preset '{presetName}', input list: {listPath ?? "<none>"}");
 
-                if (stringBuilder.Length >= MaximumProcessArgumentsLength)
+                var processStartInfo = new ProcessStartInfo(PathHelpers.FileConverterPath)
                 {
-                    // Alternative way of passing arguments to not overflow the command line.
-                    stringBuilder.Clear();
-                    BuildConversionPresetArgument(stringBuilder);
+                    CreateNoWindow = false,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = false,
+                    Arguments = invocation.Arguments,
+                };
 
-                    // Store list of file to convert in a file in Temp folder.
-                    fileListPath = Path.Combine(Path.GetTempPath(), "file-converter-input-list.txt");
-                    int index = 1;
-                    while (File.Exists(fileListPath))
-                    {
-                        fileListPath = Path.Combine(Path.GetTempPath(), $"file-converter-input-list-{index}.txt");
-                        index++;
-                    }
+                Process exeProcess = Process.Start(processStartInfo);
+                if (exeProcess == null)
+                {
+                    throw new InvalidOperationException("Process.Start returned no process.");
+                }
 
-                    using (FileStream file = File.OpenWrite(fileListPath))
-                    using (StreamWriter writer = new StreamWriter(file))
-                    {
-                        foreach (var path in this.SelectedItemPaths)
-                        {
-                            writer.WriteLine(path);
-                        }
-                    }
-
-                    stringBuilder.Append(" --input-files ");
-                    stringBuilder.Append(" \"");
-                    stringBuilder.Append(fileListPath);
-                    stringBuilder.Append("\"");
-                    break;
+                if (listPath != null)
+                {
+                    // The application deletes its own list once read; this is the safety net if it never got that far.
+                    string listToDelete = listPath;
+                    exeProcess.EnableRaisingEvents = true;
+                    exeProcess.Exited += (sender, args) => ConversionCommandLine.TryDeleteInputList(listToDelete);
                 }
             }
-
-            var processStartInfo = new ProcessStartInfo(PathHelpers.FileConverterPath)
+            catch (Exception exception)
             {
-                CreateNoWindow = false,
-                UseShellExecute = false,
-                RedirectStandardOutput = false,
-                Arguments = stringBuilder.ToString(),
-            };
-
-            Process exeProcess = Process.Start(processStartInfo);
-            exeProcess.EnableRaisingEvents = true;
-            exeProcess.Exited += (sender, args) =>
-            {
-                if (fileListPath != null)
-                {
-                    try
-                    {
-                        File.Delete(fileListPath);
-                    }
-                    catch 
-                    { 
-                    }
-                }
-            };
+                ConversionCommandLine.TryDeleteInputList(listPath);
+                ExtensionLog.Warn("Can't start the conversion: " + exception);
+                MessageBox.Show($"FileConverter++ can't start the conversion: {exception.Message}");
+            }
         }
     }
 }

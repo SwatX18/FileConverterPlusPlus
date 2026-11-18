@@ -16,6 +16,8 @@ Visual Studio's Test Explorer runs them too (the project is in `FileConverter.sl
 | `ImageRoutingTests` | Job type per input/output, libvips or ImageMagick per format and setting, rotations, output sizes (ImageMagick's computation) |
 | `HardwareEncoderDetectorTests` | Detection with a fake process runner (success, failure, timeout, exception), cache by fingerprint, Re-detect, vendor priority, encoder summary |
 | `SchedulingAndSettingsTests` | Limits per lane, thread budgets, settings migrations (v5 hardware acceleration, v6 simultaneous conversions), defaults |
+| `ShellExtensionTests` | Explorer extension: Windows command-line quoting (round trip through CommandLineToArgvW), input list files (size, Unicode, concurrency, cleanup), selection normalization, which presets are enabled for root / nested / mixed-extension selections |
+| `OutputValidationTests` | A DVD menu VOB (video only, a fraction of a second) is not a successful conversion |
 | `EstimatedRemainingDurationTests` | The "estimated remaining time" converter never throws or shows a negative time (progress 0 / NaN / infinity / past 1 / tiny, unset binding values) |
 
 The tests don't touch the registry, the user's settings or the GPU. The libvips routing cases load the libvips DLLs
@@ -54,3 +56,9 @@ ffmpeg -f lavfi -i testsrc=size=160x120:rate=2:duration=14400 -f lavfi -i anoise
 ```
 
 The job must end with "Job done"; with stdout not drained it stays at 99 % forever.
+
+## Shell probe (`ShellProbe/ShellProbe.cs`)
+
+Runs the Explorer extension on the selection of a live Explorer window (search results included) and prints the formats
+the shell offers, what SharpShell's `CF_HDROP` read would get and what the extension does with it. See
+[docs/SHELL-EXTENSION.md](../docs/SHELL-EXTENSION.md) for usage and the test matrix.

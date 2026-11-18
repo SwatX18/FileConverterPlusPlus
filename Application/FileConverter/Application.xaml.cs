@@ -355,7 +355,25 @@ namespace FileConverter
                                 {
                                     while (!reader.EndOfStream)
                                     {
-                                        filePaths.Add(reader.ReadLine());
+                                        string line = reader.ReadLine();
+                                        if (!string.IsNullOrWhiteSpace(line))
+                                        {
+                                            filePaths.Add(line);
+                                        }
+                                    }
+                                }
+
+                                // The shell extension writes one private list per invocation: remove it once it has been read
+                                // (only our own lists, in the temp folder, never a file the user pointed us at).
+                                if (IsExtensionInputList(fileListPath))
+                                {
+                                    try
+                                    {
+                                        File.Delete(fileListPath);
+                                    }
+                                    catch (Exception deleteException)
+                                    {
+                                        Debug.Log($"Can't delete the input files list '{fileListPath}': {deleteException.Message}");
                                     }
                                 }
                             }
@@ -388,6 +406,27 @@ namespace FileConverter
             }
 
             this.RunConversions(filePaths, conversionPresetName);
+        }
+
+        /// <summary>
+        /// Whether <paramref name="path"/> is an input list written by the shell extension: in the temp folder, named
+        /// file-converter-input-list-*.txt.
+        /// </summary>
+        internal static bool IsExtensionInputList(string path)
+        {
+            try
+            {
+                string fullPath = Path.GetFullPath(path);
+                string tempFolder = Path.GetFullPath(Path.GetTempPath());
+                string name = Path.GetFileName(fullPath);
+                return string.Equals(Path.GetDirectoryName(fullPath), tempFolder.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
+                    && name.StartsWith("file-converter-input-list", StringComparison.OrdinalIgnoreCase)
+                    && name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void RunConversions(List<string> filePaths, string conversionPresetName)

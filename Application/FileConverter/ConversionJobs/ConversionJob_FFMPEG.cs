@@ -632,6 +632,65 @@ namespace FileConverter.ConversionJobs
         }
 
         /// <summary>
+        /// Checks the final output once ffmpeg succeeded: it must exist and not be empty. DVD inputs (.vob) are probed as
+        /// well, because their menu and navigation files, or encrypted titles, make ffmpeg write a stream-less file.
+        /// </summary>
+        /// <returns>Null if the output is valid, the problem otherwise.</returns>
+        private string ValidateOutputWasWritten()
+        {
+            FileInfo output = new FileInfo(this.OutputFilePath);
+            if (!output.Exists)
+            {
+                return "ffmpeg reported success but the output file was not written";
+            }
+
+            if (output.Length == 0)
+            {
+                return "ffmpeg reported success but the output file is empty";
+            }
+
+            if (!string.Equals(System.IO.Path.GetExtension(this.InputFilePath), ".vob", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            bool expectVideo = this.IsVideoOutput;
+            bool expectAudio = !expectVideo || this.ConversionPreset.GetSettingsValue<bool>(ConversionPreset.ConversionSettingKeys.EnableAudio);
+            MediaInfo probed = MediaProbe.Default.TryProbe(this.OutputFilePath);
+            return ValidateProbedOutput(probed, expectVideo, expectAudio);
+        }
+
+        /// <summary>
+        /// Checks a probed output: the streams the preset asks for must be there and the file must have a duration.
+        /// </summary>
+        /// <returns>Null if the output is valid, the problem otherwise.</returns>
+        internal static string ValidateProbedOutput(MediaInfo output, bool expectVideo, bool expectAudio)
+        {
+            if (output == null)
+            {
+                return "the output file can't be read back (ffprobe failed)";
+            }
+
+            const string Hint = "the DVD file is probably a menu / navigation VOB (VIDEO_TS.VOB, VTS_xx_0.VOB), an encrypted (copy-protected) title, or has no usable stream";
+            if (expectVideo && output.PrimaryVideo == null)
+            {
+                return "the output has no video stream: " + Hint;
+            }
+
+            if (expectAudio && !output.AudioStreams.Any())
+            {
+                return "the output has no audio stream: " + Hint;
+            }
+
+            if (!output.Duration.HasValue || output.Duration.Value <= TimeSpan.Zero)
+            {
+                return "the output has no duration: " + Hint;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Probes the input file once per job (null if ffprobe is missing or fails).
         /// </summary>
         private MediaInfo GetSourceInfo()
@@ -661,7 +720,7 @@ namespace FileConverter.ConversionJobs
             {
                 FFMpegPass currentPass = this.ffmpegArgumentStringByPass[index];
 
-                if (!this.ExecutePass(currentPass))
+                if (!this.ExecutePass(currentPass, isFinalPass: index == this.ffmpegArgumentStringByPass.Count - 1))
                 {
                     break;
                 }
@@ -690,7 +749,7 @@ namespace FileConverter.ConversionJobs
         /// then CPU). The job only fails if the last attempt fails.
         /// </summary>
         /// <returns>True if the pass succeeded.</returns>
-        private bool ExecutePass(FFMpegPass pass)
+        private bool ExecutePass(FFMpegPass pass, bool isFinalPass)
         {
             for (int attemptIndex = 0; attemptIndex < pass.Attempts.Count; attemptIndex++)
             {
@@ -712,6 +771,26 @@ namespace FileConverter.ConversionJobs
                     if (error != null)
                     {
                         Diagnostics.Debug.Log($"Output validation failed: {error}.");
+                    }
+                }
+
+                // ffmpeg exiting with code 0 is not proof of a usable file (a DVD menu VOB gives a headers-only MP4 and exit code 0).
+                if (error == null && isFinalPass && !this.CancelIsRequested)
+                {
+                    error = this.ValidateOutputWasWritten();
+                    if (error != null)
+                    {
+                        Diagnostics.Debug.Log($"Output validation failed: {error}.");
+
+                        // Don't leave an unusable file behind that looks like a result.
+                        try
+                        {
+                            File.Delete(this.OutputFilePath);
+                        }
+                        catch (Exception exception)
+                        {
+                            Diagnostics.Debug.Log($"Can't delete the invalid output: {exception.Message}");
+                        }
                     }
                 }
 

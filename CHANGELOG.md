@@ -1,5 +1,13 @@
 # Change Log
 
+## Unreleased
+
+- Fixes: The menu was missing in the search-results panel of file managers (Unreal Commander, Total Commander) for files in sub-folders: the shell never loaded the extension for the multi-level relative PIDLs they pass. The extension is now also registered under AllFileSystemObjects.
+- Fixes: Explorer extension: the selection is now read through IShellItemArray, then CF_HDROP (right-sized buffer), then Shell IDList Array, instead of SharpShell's single CF_HDROP query, whose failure (format not offered by a virtual folder such as search results) made Explorer drop the extension, i.e. no menu at all. Skipped items and failed channels are logged to `%LOCALAPPDATA%FileConverterShellExtension.log`. 8.3 aliases handed out for paths over 260 characters are expanded. Details: `docs/SHELL-EXTENSION.md`.
+- Fixes: Command line: Windows quoting, one uniquely named input list per invocation (no collision between simultaneous right-clicks), stale lists cleaned, blank lines ignored, the application deletes the list it read.
+- Fixes: A conversion is only reported successful when its output exists and is not empty. DVD inputs (.vob) must also give the streams asked for with a duration: menu / navigation VOBs (VIDEO_TS.VOB, VTS_xx_0.VOB), which gave a headers-only MP4 and a "success", now fail with an explicit reason and leave no file.
+- Tech: `Tests/ShellProbe` (attaches to a live Explorer window and runs the extension on its selection), 38 new unit tests.
+
 ## FileConverter++ 2.3.0 (2026-10-19, fork of File Converter 2.2)
 
 - New: Renamed FileConverter++ (`FileConverterPlusPlus.exe`, `C:\Program Files\FileConverter++`), published by SwatX18. It replaces File Converter when installed and keeps its settings; updates are checked on github.com/SwatX18/FileConverterPlusPlus.
