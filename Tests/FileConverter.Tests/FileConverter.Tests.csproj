@@ -18,7 +18,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Application\FileConverter\FileConverter.csproj" />
+    <ProjectReference Include="..\..\Application\FileConverterExtension\FileConverterExtension.csproj" />
     <Reference Include="System.Management" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
   </ItemGroup>
 
   <ItemGroup>
